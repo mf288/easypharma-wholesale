@@ -1,0 +1,103 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">{{ page_title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <!-- Basic Info -->
+                        <div class="col-md-6">
+                            <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ customer.name|default:'' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile <span class="text-danger">*</span></label>
+                            <input type="text" name="mobile" class="form-control" value="{{ customer.mobile|default:'' }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Alternate Mobile</label>
+                            <input type="text" name="alternate_mobile" class="form-control" value="{{ customer.alternate_mobile|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ customer.email|default:'' }}">
+                        </div>
+
+                        <!-- GST & DL -->
+                        <div class="col-md-6">
+                            <label class="form-label">GSTIN</label>
+                            <input type="text" name="gstin" class="form-control" value="{{ customer.gstin|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">DL Number 1</label>
+                            <input type="text" name="dl_number_1" class="form-control" value="{{ customer.dl_number_1|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">DL Number 2</label>
+                            <input type="text" name="dl_number_2" class="form-control" value="{{ customer.dl_number_2|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">DL Number 3</label>
+                            <input type="text" name="dl_number_3" class="form-control" value="{{ customer.dl_number_3|default:'' }}">
+                        </div>
+
+                        <!-- Area & Address -->
+                        <div class="col-md-6">
+                            <label class="form-label">Area <span class="text-danger">*</span></label>
+                            <select name="area" class="form-select" required>
+                                <option value="">Select Area</option>
+                                {% for area in areas %}
+                                <option value="{{ area.id }}" {% if customer.area_id == area.id %}selected{% endif %}>
+                                    {{ area.city }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">City</label>
+                            <input type="text" name="city" class="form-control" value="{{ customer.city|default:'' }}">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Full Address</label>
+                            <textarea name="address" class="form-control" rows="3">{{ customer.address|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Financial Info -->
+                        <div class="col-md-4">
+                            <label class="form-label">Opening Balance (₹)</label>
+                            <input type="number" step="0.01" name="opening_balance" class="form-control" value="{{ customer.opening_balance|default:0 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Credit Limit (₹)</label>
+                            <input type="number" step="0.01" name="credit_limit" class="form-control" value="{{ customer.credit_limit|default:0 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Credit Days</label>
+                            <input type="number" name="credit_days" class="form-control" value="{{ customer.credit_days|default:0 }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">Save Customer</button>
+                        <a href="{% url 'customerlist' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

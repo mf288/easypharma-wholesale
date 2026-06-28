@@ -1,0 +1,81 @@
+<!-- Sidebar -->
+<div class="sidebar text-white" style="width: 260px; min-height: 100vh; position: fixed; overflow-y: auto; z-index: 1000; background-color: #6f42c1;">
+    <div class="p-3 border-bottom border-light border-opacity-20">
+        <h4 class="text-white mb-0">
+            <i class="bi bi-building-fill"></i> Easy Pharma
+        </h4>
+        <small class="text-light opacity-75">Wholesale Management</small>
+    </div>
+    
+    <div class="p-3">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item mb-1">
+                <a href="{% url 'dashboard' %}" class="nav-link text-white active">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+            </li>
+
+            <!-- Masters -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#mastersCollapse" role="button">
+                    <i class="bi bi-folder-fill me-2"></i> Masters
+                </a>
+                <div class="collapse ms-3" id="mastersCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Area Master</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Supplier Master</a></li>
+                        <li class="nav-item"><a href="{% url 'customerlist' %}" class="nav-link text-light">Customer Master</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Product Master</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Transactions -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#transCollapse" role="button">
+                    <i class="bi bi-cart-fill me-2"></i> Transactions
+                </a>
+                <div class="collapse ms-3" id="transCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Purchase</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Sales / Billing</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Payment Collection</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Reports -->
+            <li class="nav-item mt-3">
+                <a href="#" class="nav-link text-white">
+                    <i class="bi bi-bar-chart-fill me-2"></i> Reports
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .sidebar {
+        transition: all 0.3s ease;
+    }
+    .nav-link {
+        color: #f0e6ff !important;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin: 3px 0;
+    }
+    .nav-link:hover {
+        background-color: rgba(255,255,255,0.15);
+        color: white !important;
+    }
+    .nav-link.active {
+        background-color: #5a32a3;
+        color: white !important;
+        font-weight: 500;
+    }
+    .collapse .nav-link {
+        padding-left: 40px;
+        font-size: 0.95rem;
+    }
+</style>

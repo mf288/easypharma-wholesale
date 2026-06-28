@@ -1,0 +1,138 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}Dashboard - Easy Pharma Wholesale{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+
+    <!-- Welcome -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #6f42c1, #9f7aea); color: white;">
+            <div class="card-body p-5">
+                <h2>Welcome Back, {{ name|default:"Team" }} 👋</h2>
+                <p class="lead opacity-90">Today's Business Overview</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Operational Metrics -->
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Today's Sale</p>
+                        <h3 class="fw-bold text-success">₹6,84,250</h3>
+                        <small class="text-success">↑ 22% from yesterday</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Today's Purchase</p>
+                        <h3 class="fw-bold text-primary">₹3,12,800</h3>
+                        <small class="text-muted">41 bills processed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Receivable</p>
+                        <h3 class="fw-bold text-warning">₹18,45,720</h3>
+                        <small class="text-danger">48 customers overdue</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Payable</p>
+                        <h3 class="fw-bold text-info">₹9,75,300</h3>
+                        <small class="text-success">Next 7 days: ₹4.2 Lakh</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Status -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between">
+                <h5>Godown Stock Status</h5>
+                <span class="badge bg-danger">12 Items Low Stock</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4 class="text-success">₹1.87 Crore</h4>
+                        <p class="text-muted mb-0">Current Total Stock Value</p>
+                    </div>
+                    <div class="col-md-6 border-start">
+                        <h5 class="text-danger">Low Stock Items</h5>
+                        <ul class="list-unstyled">
+                            <li>Amoxicillin 500mg - 4 units left</li>
+                            <li>Cefixime 200mg - 7 units left</li>
+                            <li>Paracetamol Syrup - 2 units left</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expiry & AI Alert -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5>Expiry Alert (Next 90 Days)</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>18 Items</strong> will expire soon.<br>
+                    Immediate action required on 6 products.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Area Wise Performance -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5>Area Wise Sales Performance (This Month)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 border-end">
+                        <h5>Andheri</h5>
+                        <h4 class="text-success">₹18.4 Lakh</h4>
+                        <small>42 Customers</small>
+                    </div>
+                    <div class="col-md-3 border-end">
+                        <h5>Borivali</h5>
+                        <h4 class="text-success">₹12.8 Lakh</h4>
+                        <small>28 Customers</small>
+                    </div>
+                    <div class="col-md-3 border-end">
+                        <h5>Malad</h5>
+                        <h4 class="text-success">₹9.7 Lakh</h4>
+                        <small>19 Customers</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h5>Goregaon</h5>
+                        <h4 class="text-success">₹7.2 Lakh</h4>
+                        <small>15 Customers</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
