@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Categories - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Categories{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Categories Management</h2>
+        <a href="{% url 'category_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Category</a>
+    </div>
+    
+    {% if categories %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Category Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                    <tr>
+                        <td><strong>{{ category.name }}</strong></td>
+                        <td>{{ category.description }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="padding: 40px; text-align: center; color: #999;">
+            <i class="fas fa-list" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+            <p>No categories found</p>
+            <a href="{% url 'category_create' %}" class="btn btn-primary" style="margin-top: 20px;">Create First Category</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

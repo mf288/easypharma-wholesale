@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - EasyPharma Wholesale{% endblock %}
+{% block page_title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Product Details</h2>
+        <div class="btn-group">
+            <a href="{% url 'product_edit' product.id %}" class="btn btn-primary">Edit</a>
+            <a href="{% url 'product_delete' product.id %}" class="btn btn-danger">Delete</a>
+            <a href="{% url 'product_list' %}" class="btn btn-secondary">Back</a>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <!-- Left Column -->
+        <div>
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Product Name</label>
+                <p style="font-size: 24px; font-weight: bold; margin-top: 5px;">{{ product.name }}</p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">SKU</label>
+                <p style="font-size: 16px; margin-top: 5px;">{{ product.sku }}</p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Category</label>
+                <p style="font-size: 16px; margin-top: 5px;">{{ product.category.name }}</p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Manufacturer</label>
+                <p style="font-size: 16px; margin-top: 5px;">{{ product.manufacturer }}</p>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div>
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Sale Price</label>
+                <p style="font-size: 24px; font-weight: bold; color: #28a745; margin-top: 5px;">₹{{ product.sale_price|floatformat:2 }}</p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Purchase Price</label>
+                <p style="font-size: 16px; margin-top: 5px;">₹{{ product.purchase_price|floatformat:2 }}</p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Current Stock</label>
+                <p style="font-size: 20px; font-weight: bold; margin-top: 5px;">
+                    <span style="padding: 8px 15px; border-radius: 4px;
+                        {% if product.stock_quantity <= product.min_stock_level %}background: #f8d7da; color: #721c24;
+                        {% else %}background: #d4edda; color: #155724;
+                        {% endif %}">
+                        {{ product.stock_quantity }} units
+                    </span>
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Minimum Stock Level</label>
+                <p style="font-size: 16px; margin-top: 5px;">{{ product.min_stock_level }} units</p>
+            </div>
+        </div>
+    </div>
+    
+    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+    
+    <!-- Batch Information -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <div>
+            <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Batch Number</label>
+            <p style="font-size: 16px; margin-top: 5px;">{{ product.batch_number }}</p>
+        </div>
+        
+        <div>
+            <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Expiry Date</label>
+            <p style="font-size: 16px; margin-top: 5px;">
+                {% if product.expiry_date %}
+                    {{ product.expiry_date|date:"d M, Y" }}
+                    {% if product.expiry_date|date:"Y-m-d" < today|date:"Y-m-d" %}
+                        <span style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px;">EXPIRED</span>
+                    {% endif %}
+                {% else %}
+                    N/A
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    <!-- Profit Margin -->
+    <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+        <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Profit Margin</label>
+        <p style="font-size: 18px; font-weight: bold; margin-top: 5px;">
+            {% with margin=product.sale_price|add:product.purchase_price|add:"-1" %}
+                ₹{{ margin|floatformat:2 }} per unit
+                ({{ margin|add:product.purchase_price|add:"-1"|mul:100|add:product.purchase_price|add:"-1"|div:product.purchase_price|floatformat:1 }}%)
+            {% endwith %}
+        </p>
+    </div>
+</div>
+
+<style>
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}

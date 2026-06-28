@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if customer %}Edit{% else %}Add{% endif %} Customer - EasyPharma Wholesale{% endblock %}
+{% block page_title %}{% if customer %}Edit Customer{% else %}Add New Customer{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>{% if customer %}Edit Customer{% else %}Add New Customer{% endif %}</h2>
+    </div>
+    
+    <form method="post" style="max-width: 800px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="pharmacy_name">Pharmacy Name *</label>
+                <input type="text" id="pharmacy_name" name="pharmacy_name" value="{% if customer %}{{ customer.pharmacy_name }}{% endif %}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="name">Contact Person Name *</label>
+                <input type="text" id="name" name="name" value="{% if customer %}{{ customer.name }}{% endif %}" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="phone">Phone Number *</label>
+                <input type="tel" id="phone" name="phone" value="{% if customer %}{{ customer.phone }}{% endif %}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" value="{% if customer %}{{ customer.email }}{% endif %}">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="address">Address *</label>
+            <textarea id="address" name="address" required>{% if customer %}{{ customer.address }}{% endif %}</textarea>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 30px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> {% if customer %}Update Customer{% else %}Add Customer{% endif %}
+            </button>
+            <a href="{% url 'customer_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

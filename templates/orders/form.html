@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Order - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Create New Order{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Create New Order</h2>
+    </div>
+    
+    <form method="post" id="orderForm">
+        {% csrf_token %}
+        
+        <!-- Customer Selection -->
+        <div style="margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px;">Select Customer</h3>
+            <div class="form-group">
+                <label for="customer">Customer *</label>
+                <select id="customer" name="customer" required>
+                    <option value="">Select a customer</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.pharmacy_name }} - {{ customer.phone }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        
+        <!-- Products Selection -->
+        <div style="margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px;">Add Products</h3>
+            
+            <div id="itemsContainer">
+                <div class="order-item" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 15px; align-items: end;">
+                    <div>
+                        <label>Product *</label>
+                        <select name="product_id" class="product-select" required>
+                            <option value="">Select product</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}" data-price="{{ product.sale_price }}">
+                                    {{ product.name }} (Stock: {{ product.stock_quantity }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label>Unit Price (₹)</label>
+                        <input type="number" class="unit-price" step="0.01" readonly>
+                    </div>
+                    
+                    <div>
+                        <label>Quantity *</label>
+                        <input type="number" name="quantity" class="quantity" min="1" value="1" required>
+                    </div>
+                    
+                    <div>
+                        <label>Subtotal (₹)</label>
+                        <input type="number" class="subtotal" step="0.01" readonly>
+                    </div>
+                    
+                    <button type="button" class="btn btn-danger remove-item" style="padding: 10px 15px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <button type="button" class="btn btn-secondary" id="addItemBtn" style="margin-top: 15px;">
+                <i class="fas fa-plus"></i> Add Another Product
+            </button>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        
+        <!-- Order Summary -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; max-width: 400px; margin-left: auto; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
+                <span>Total Items:</span>
+                <strong id="totalItems">0</strong>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #667eea;">
+                <span>Total Amount:</span>
+                <span id="totalAmount">₹0.00</span>
+            </div>
+        </div>
+        
+        <!-- Submit -->
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Create Order
+            </button>
+            <a href="{% url 'order_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    const itemsContainer = document.getElementById('itemsContainer');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const orderForm = document.getElementById('orderForm');
+    
+    // Add new item row
+    addItemBtn.addEventListener('click', function() {
+        const newItem = document.querySelector('.order-item').cloneNode(true);
+        newItem.querySelector('.product-select').value = '';
+        newItem.querySelector('.unit-price').value = '';
+        newItem.querySelector('.quantity').value = '1';
+        newItem.querySelector('.subtotal').value = '';
+        itemsContainer.appendChild(newItem);
+        attachItemListeners(newItem);
+    });
+    
+    // Attach listeners to item row
+    function attachItemListeners(itemElement) {
+        const productSelect = itemElement.querySelector('.product-select');
+        const quantityInput = itemElement.querySelector('.quantity');
+        const unitPriceInput = itemElement.querySelector('.unit-price');
+        const subtotalInput = itemElement.querySelector('.subtotal');
+        const removeBtn = itemElement.querySelector('.remove-item');
+        
+        productSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const price = selectedOption.dataset.price || 0;
+            unitPriceInput.value = price;
+            updateSubtotal(itemElement);
+        });
+        
+        quantityInput.addEventListener('change', function() {
+            updateSubtotal(itemElement);
+        });
+        
+        removeBtn.addEventListener('click', function() {
+            itemElement.remove();
+            updateTotals();
+        });
+    }
+    
+    function updateSubtotal(itemElement) {
+        const unitPrice = parseFloat(itemElement.querySelector('.unit-price').value) || 0;
+        const quantity = parseInt(itemElement.querySelector('.quantity').value) || 0;
+        const subtotal = unitPrice * quantity;
+        itemElement.querySelector('.subtotal').value = subtotal.toFixed(2);
+        updateTotals();
+    }
+    
+    function updateTotals() {
+        let totalItems = 0;
+        let totalAmount = 0;
+        
+        document.querySelectorAll('.order-item').forEach(item => {
+            const quantity = parseInt(item.querySelector('.quantity').value) || 0;
+            const subtotal = parseFloat(item.querySelector('.subtotal').value) || 0;
+            
+            totalItems += quantity;
+            totalAmount += subtotal;
+        });
+        
+        document.getElementById('totalItems').textContent = totalItems;
+        document.getElementById('totalAmount').textContent = '₹' + totalAmount.toFixed(2);
+    }
+    
+    // Attach listeners to initial item
+    document.querySelectorAll('.order-item').forEach(item => {
+        attachItemListeners(item);
+    });
+</script>
+
+<style>
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .order-item {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+
+    .order-item label {
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+
+    @media (max-width: 768px) {
+        .order-item {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}

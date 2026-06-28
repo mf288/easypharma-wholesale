@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Order #{{ order.id }} - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Order #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Order Details</h2>
+        <div class="btn-group">
+            <a href="{% url 'order_edit_status' order.id %}" class="btn btn-primary">Update Status</a>
+            <a href="{% url 'order_list' %}" class="btn btn-secondary">Back</a>
+        </div>
+    </div>
+    
+    <!-- Order Header -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid #eee;">
+        <div>
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Order ID</label>
+                <p style="font-size: 20px; font-weight: bold; margin-top: 5px;">#{{ order.id }}</p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Order Date</label>
+                <p style="font-size: 16px; margin-top: 5px;">{{ order.order_date|date:"d M, Y H:i" }}</p>
+            </div>
+        </div>
+        
+        <div>
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Status</label>
+                <p style="font-size: 16px; margin-top: 5px;">
+                    <span style="padding: 8px 15px; border-radius: 4px; font-weight: bold;
+                        {% if order.status == 'Pending' %}background: #fff3cd; color: #856404;
+                        {% elif order.status == 'Completed' %}background: #d4edda; color: #155724;
+                        {% else %}background: #f8d7da; color: #721c24;
+                        {% endif %}">
+                        {{ order.status }}
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Customer Information -->
+    <div style="margin-bottom: 30px;">
+        <h3 style="margin-bottom: 15px;">Customer Information</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+            <div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Pharmacy Name</label>
+                    <p style="font-size: 16px; margin-top: 5px;">{{ order.customer.pharmacy_name }}</p>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Contact Person</label>
+                    <p style="font-size: 16px; margin-top: 5px;">{{ order.customer.name }}</p>
+                </div>
+            </div>
+            
+            <div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Phone</label>
+                    <p style="font-size: 16px; margin-top: 5px;">{{ order.customer.phone }}</p>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Address</label>
+                    <p style="font-size: 16px; margin-top: 5px;">{{ order.customer.address }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+    
+    <!-- Order Items -->
+    <div style="margin-bottom: 30px;">
+        <h3 style="margin-bottom: 15px;">Order Items</h3>
+        
+        {% if items %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td><strong>{{ item.product.name }}</strong></td>
+                            <td>{{ item.product.sku }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>₹{{ item.unit_price|floatformat:2 }}</td>
+                            <td><strong>₹{{ item.subtotal|floatformat:2 }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+    
+    <!-- Order Summary -->
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; max-width: 400px; margin-left: auto;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
+            <span>Total Items:</span>
+            <strong>{{ items.count }}</strong>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #667eea;">
+            <span>Total Amount:</span>
+            <span>₹{{ order.total_amount|floatformat:2 }}</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}

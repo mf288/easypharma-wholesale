@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Order Status - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Update Order Status{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 50px auto;">
+    <div class="card-header">
+        <h2>Update Order Status</h2>
+    </div>
+    
+    <div style="padding: 20px; margin-bottom: 20px; background: #f8f9fa; border-radius: 8px;">
+        <div style="margin-bottom: 15px;">
+            <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Order ID</label>
+            <p style="font-size: 18px; font-weight: bold; margin-top: 5px;">#{{ order.id }}</p>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Customer</label>
+            <p style="font-size: 16px; margin-top: 5px;">{{ order.customer.pharmacy_name }}</p>
+        </div>
+        
+        <div>
+            <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Current Status</label>
+            <p style="font-size: 16px; margin-top: 5px;">
+                <span style="padding: 8px 15px; border-radius: 4px; font-weight: bold;
+                    {% if order.status == 'Pending' %}background: #fff3cd; color: #856404;
+                    {% elif order.status == 'Completed' %}background: #d4edda; color: #155724;
+                    {% else %}background: #f8d7da; color: #721c24;
+                    {% endif %}">
+                    {{ order.status }}
+                </span>
+            </p>
+        </div>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="status">New Status *</label>
+            <select id="status" name="status" required>
+                <option value="">Select Status</option>
+                <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Completed" {% if order.status == 'Completed' %}selected{% endif %}>Completed</option>
+                <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 30px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update Status
+            </button>
+            <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+    }
+
+    .form-group select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+</style>
+{% endblock %}

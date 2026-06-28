@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Customers - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Customers{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Customers Management</h2>
+        <a href="{% url 'customer_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Customer</a>
+    </div>
+    
+    <!-- Search -->
+    <form method="get" class="search-filter">
+        <input type="text" name="search" placeholder="Search by pharmacy name, contact name, or phone..." value="{{ search_query }}">
+        <button type="submit"><i class="fas fa-search"></i> Search</button>
+    </form>
+    
+    <!-- Customers Table -->
+    {% if customers %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Pharmacy Name</th>
+                    <th>Contact Person</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                    <tr>
+                        <td><strong>{{ customer.pharmacy_name }}</strong></td>
+                        <td>{{ customer.name }}</td>
+                        <td>{{ customer.phone }}</td>
+                        <td>{{ customer.email }}</td>
+                        <td>{{ customer.address|truncatewords:3 }}</td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'customer_detail' customer.id %}" class="btn-view">View</a>
+                                <a href="{% url 'customer_edit' customer.id %}" class="btn-edit">Edit</a>
+                                <a href="{% url 'customer_delete' customer.id %}" class="btn-delete">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="padding: 40px; text-align: center; color: #999;">
+            <i class="fas fa-users" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+            <p>No customers found</p>
+            <a href="{% url 'customer_create' %}" class="btn btn-primary" style="margin-top: 20px;">Add First Customer</a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .table-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .table-actions a {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: #117a8b;
+    }
+
+    .btn-edit {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: #0056b3;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #c82333;
+    }
+</style>
+{% endblock %}

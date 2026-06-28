@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Orders - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Orders{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Orders Management</h2>
+        <a href="{% url 'order_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Create Order</a>
+    </div>
+    
+    <!-- Filter by Status -->
+    <form method="get" class="search-filter">
+        <select name="status">
+            <option value="">All Orders</option>
+            <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Completed" {% if selected_status == 'Completed' %}selected{% endif %}>Completed</option>
+            <option value="Cancelled" {% if selected_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+        </select>
+        <button type="submit"><i class="fas fa-filter"></i> Filter</button>
+    </form>
+    
+    <!-- Orders Table -->
+    {% if orders %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Order Date</th>
+                    <th>Items</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td><strong>#{{ order.id }}</strong></td>
+                        <td>{{ order.customer.pharmacy_name }}</td>
+                        <td>{{ order.order_date|date:"d M, Y H:i" }}</td>
+                        <td>{{ order.items.count }} items</td>
+                        <td><strong>₹{{ order.total_amount|floatformat:2 }}</strong></td>
+                        <td>
+                            <span style="padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;
+                                {% if order.status == 'Pending' %}background: #fff3cd; color: #856404;
+                                {% elif order.status == 'Completed' %}background: #d4edda; color: #155724;
+                                {% else %}background: #f8d7da; color: #721c24;
+                                {% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'order_detail' order.id %}" class="btn-view">View</a>
+                                <a href="{% url 'order_edit_status' order.id %}" class="btn-edit">Edit Status</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="padding: 40px; text-align: center; color: #999;">
+            <i class="fas fa-shopping-cart" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+            <p>No orders found</p>
+            <a href="{% url 'order_create' %}" class="btn btn-primary" style="margin-top: 20px;">Create First Order</a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .table-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .table-actions a {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: #117a8b;
+    }
+
+    .btn-edit {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: #0056b3;
+    }
+</style>
+{% endblock %}
