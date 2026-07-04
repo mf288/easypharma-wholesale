@@ -44,3 +44,6 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Desktop Build
+build_desktop.spec
