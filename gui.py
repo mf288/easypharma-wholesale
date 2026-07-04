@@ -10,6 +10,7 @@ import sys
 import time
 import threading
 import webview
+import django
 
 
 # ─── Determine paths (works for both dev and PyInstaller-frozen builds) ───
@@ -22,8 +23,16 @@ else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     MANAGE_DIR = BASE_DIR
 
-DJANGO_SETTINGS_MODULE = 'easyPharma_wholesale.settings'
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', DJANGO_SETTINGS_MODULE)
+# ─── Initialize Django Settings ───
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'easyPharma_wholesale.settings')
+
+# Add project directory to sys.path so Django can find settings
+if MANAGE_DIR not in sys.path:
+    sys.path.insert(0, MANAGE_DIR)
+
+# ─── Setup Django ───
+# Django 6.x requires explicit setup() when not using manage.py
+django.setup()
 
 PORT = 8765  # Use a non-standard port to avoid conflicts
 
@@ -31,10 +40,6 @@ PORT = 8765  # Use a non-standard port to avoid conflicts
 # ─── Start Django Development Server ───
 def start_django_server():
     """Start the Django runserver in a background thread."""
-    # Add project directory to sys.path so Django can find settings
-    if MANAGE_DIR not in sys.path:
-        sys.path.insert(0, MANAGE_DIR)
-
     from django.core.management import call_command
     print(f"Starting Django server on 127.0.0.1:{PORT}...")
     try:
