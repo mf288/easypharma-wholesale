@@ -32,7 +32,7 @@ def customer_create(request):
         )
         customer.save()
         messages.success(request, 'Customer created successfully!')
-        return redirect('customerlist')
+        return redirect('customer_list')
     
     context = {'areas': areas, 'page_title': 'Add New Customer'}
     return render(request, 'customers/customer_form.html', context)

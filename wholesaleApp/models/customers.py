@@ -21,6 +21,21 @@ class AreaMaster(models.Model):
     def __str__(self):
         return f"({self.city})"
 
+class SubareaMaster(models.Model):
+    area = models.ForeignKey(AreaMaster, on_delete=models.CASCADE, related_name='subareas')
+    name = models.CharField(max_length=150, verbose_name="Subarea Name")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Subarea Master"
+        verbose_name_plural = "Subarea Masters"
+        ordering = ['name']
+
+    def __str__(self):
+        return f"({self.area.city}) - {self.name}"
+
 # ==================== CUSTOMER MASTER ====================
 class CustomerMaster(models.Model):
     name = models.CharField(max_length=255, verbose_name="Customer Name")
@@ -33,6 +48,7 @@ class CustomerMaster(models.Model):
     dl_number_3 = models.CharField(max_length=15, blank=True, null=True)
     
     area = models.ForeignKey('AreaMaster', on_delete=models.PROTECT, related_name='customers')
+    subarea = models.ForeignKey('SubareaMaster', on_delete=models.PROTECT, related_name='customers', blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)

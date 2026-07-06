@@ -19,10 +19,9 @@
                 <tr>
                     <th>Name</th>
                     <th>Mobile</th>
+                    <th>GST Number</th>
                     <th>Area</th>
                     <th>City</th>
-                    <th>Opening Balance</th>
-                    <th>Credit Limit</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -32,10 +31,9 @@
                 <tr>
                     <td><strong>{{ customer.name }}</strong></td>
                     <td>{{ customer.mobile }}</td>
-                    <td>{{ customer.area.name }}</td>
+                    <td>{{ customer.gstin }}</td>
+                    <td>{{ customer.subarea.name }}</td>
                     <td>{{ customer.city }}</td>
-                    <td class="fw-bold">₹{{ customer.opening_balance|floatformat:2 }}</td>
-                    <td>₹{{ customer.credit_limit|floatformat:2 }}</td>
                     <td>
                         {% if customer.status %}
                             <span class="badge bg-success">Active</span>

@@ -1,0 +1,99 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">{{ page_title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <!-- Basic Info -->
+                        <div class="col-md-6">
+                            <label class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ supplier.name|default:'' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile <span class="text-danger">*</span></label>
+                            <input type="text" name="mobile" class="form-control" value="{{ supplier.mobile|default:'' }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Alternate Mobile</label>
+                            <input type="text" name="alternate_mobile" class="form-control" value="{{ supplier.alternate_mobile|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ supplier.email|default:'' }}">
+                        </div>
+
+                        <!-- GST & DL -->
+                        <div class="col-md-6">
+                            <label class="form-label">GSTIN</label>
+                            <input type="text" name="gstin" class="form-control" value="{{ supplier.gstin|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">DL Number 1</label>
+                            <input type="text" name="dl_number_1" class="form-control" value="{{ supplier.dl_number_1|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">DL Number 2</label>
+                            <input type="text" name="dl_number_2" class="form-control" value="{{ supplier.dl_number_2|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">DL Number 3</label>
+                            <input type="text" name="dl_number_3" class="form-control" value="{{ supplier.dl_number_3|default:'' }}">
+                        </div>
+
+                        <!-- Address & Location -->
+                        <div class="col-md-4">
+                            <label class="form-label">City</label>
+                            <input type="text" name="city" class="form-control" value="{{ supplier.city|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">State</label>
+                            <input type="text" name="state" class="form-control" value="{{ supplier.state|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Pincode</label>
+                            <input type="text" name="pincode" class="form-control" value="{{ supplier.pincode|default:'' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Full Address</label>
+                            <textarea name="address" class="form-control" rows="3">{{ supplier.address|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Financial Info -->
+                        <div class="col-md-4">
+                            <label class="form-label">Opening Balance (₹)</label>
+                            <input type="number" step="0.01" name="opening_balance" class="form-control" value="{{ supplier.opening_balance|default:0 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Credit Limit (₹)</label>
+                            <input type="number" step="0.01" name="credit_limit" class="form-control" value="{{ supplier.credit_limit|default:0 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Credit Days</label>
+                            <input type="number" name="credit_days" class="form-control" value="{{ supplier.credit_days|default:0 }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">Save Supplier</button>
+                        <a href="{% url 'supplier_list' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
