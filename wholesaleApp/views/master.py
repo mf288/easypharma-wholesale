@@ -29,7 +29,15 @@ def HomeView(request):
             'Completed': 468,
             'Cancelled': 21,
         },
- 
+
+        # ---------------- AREA-WISE ORDERS (core feature) ----------------
+        'area_wise_orders': [
+            {'area_name': 'Andheri', 'total_orders': 20, 'pending': 5, 'delivered': 15, 'cancelled': 0, 'delivered_percent': 75.0},
+            {'area_name': 'Borivali', 'total_orders': 34, 'pending': 8, 'delivered': 24, 'cancelled': 2, 'delivered_percent': 70.6},
+            {'area_name': 'Dadar', 'total_orders': 27, 'pending': 3, 'delivered': 22, 'cancelled': 2, 'delivered_percent': 81.5},
+            {'area_name': 'Thane', 'total_orders': 18, 'pending': 6, 'delivered': 11, 'cancelled': 1, 'delivered_percent': 61.1},
+            {'area_name': 'Vashi', 'total_orders': 12, 'pending': 2, 'delivered': 9, 'cancelled': 1, 'delivered_percent': 75.0},
+        ],
         # ---------------- EXPIRY ALERTS ----------------
         'expiring_soon': [
             {

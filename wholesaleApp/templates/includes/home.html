@@ -126,6 +126,70 @@
 </div>
 
 <!-- ============================================= -->
+<!-- AREA-WISE ORDERS (core feature) -->
+<!-- ============================================= -->
+<div class="card">
+    <div class="card-header">
+        <h2>📍 Area-wise Orders</h2>
+    </div>
+
+    {% if area_wise_orders %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Area</th>
+                    <th>Total Orders</th>
+                    <th>Pending</th>
+                    <th>Delivered</th>
+                    <th>Cancelled</th>
+                    <th>Delivery Progress</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for area in area_wise_orders %}
+                    <tr>
+                        <td><strong>{{ area.area_name }}</strong></td>
+                        <td>{{ area.total_orders }}</td>
+                        <td>
+                            <span style="padding: 5px 10px; background: #fff3cd; color: #856404; border-radius: 4px; font-weight: bold;">
+                                {{ area.pending }}
+                            </span>
+                        </td>
+                        <td>
+                            <span style="padding: 5px 10px; background: #d4edda; color: #155724; border-radius: 4px; font-weight: bold;">
+                                {{ area.delivered }}
+                            </span>
+                        </td>
+                        <td>
+                            <span style="padding: 5px 10px; background: #f8d7da; color: #721c24; border-radius: 4px; font-weight: bold;">
+                                {{ area.cancelled }}
+                            </span>
+                        </td>
+                        <td style="min-width: 160px;">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill" style="width: {{ area.delivered_percent }}%;"></div>
+                            </div>
+                            <span style="font-size: 12px; color: #666;">{{ area.delivered_percent|floatformat:0 }}% delivered</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="padding: 20px; text-align: center; color: #999;">No area-wise order data available</p>
+    {% endif %}
+</div>
+
+<div class="card chart-card">
+    <div class="card-header">
+        <h2>Area-wise Order Status</h2>
+    </div>
+    <div class="chart-wrap chart-wrap-wide">
+        <canvas id="areaOrdersChart"></canvas>
+    </div>
+</div>
+
+<!-- ============================================= -->
 <!-- EXPIRY ALERTS -->
 <!-- ============================================= -->
 <div class="card">
@@ -438,6 +502,21 @@
         height: 320px;
     }
 
+    .progress-bar-track {
+        width: 100%;
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: #28a745;
+        border-radius: 4px;
+    }
+
     @media (max-width: 900px) {
         .charts-grid {
             grid-template-columns: 1fr;
@@ -458,6 +537,10 @@
 {{ revenue_trend_data|json_script:"revenue-trend-data" }}
 {{ company_sales_labels|json_script:"top-products-labels" }}
 {{ company_sales_data|json_script:"top-products-data" }}
+{{ area_names|json_script:"area-names" }}
+{{ area_pending_data|json_script:"area-pending-data" }}
+{{ area_delivered_data|json_script:"area-delivered-data" }}
+{{ area_cancelled_data|json_script:"area-cancelled-data" }}
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -540,6 +623,33 @@ document.addEventListener('DOMContentLoaded', function () {
             plugins: { legend: { display: false } },
             scales: {
                 y: { beginAtZero: true, ticks: { callback: (v) => '₹' + v.toLocaleString('en-IN') } }
+            }
+        }
+    });
+
+    // ---------- Area-wise Order Status (Stacked Bar) ----------
+    const areaNames = JSON.parse(document.getElementById('area-names').textContent);
+    const areaPending = JSON.parse(document.getElementById('area-pending-data').textContent);
+    const areaDelivered = JSON.parse(document.getElementById('area-delivered-data').textContent);
+    const areaCancelled = JSON.parse(document.getElementById('area-cancelled-data').textContent);
+
+    new Chart(document.getElementById('areaOrdersChart'), {
+        type: 'bar',
+        data: {
+            labels: areaNames,
+            datasets: [
+                { label: 'Delivered', data: areaDelivered, backgroundColor: '#28a745', stack: 'orders' },
+                { label: 'Pending', data: areaPending, backgroundColor: '#ffc107', stack: 'orders' },
+                { label: 'Cancelled', data: areaCancelled, backgroundColor: '#dc3545', stack: 'orders' },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
             }
         }
     });
