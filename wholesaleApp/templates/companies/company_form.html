@@ -1,0 +1,39 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">{{ page_title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ company.name|default:'' }}" placeholder="e.g., Cipla Ltd, Alkem Laboratories" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Company Code / Abbreviation</label>
+                            <input type="text" name="code" class="form-control" value="{{ company.code|default:'' }}" placeholder="e.g., CIPLA, ALKEM (Used for short codes in reports)">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">Save Company</button>
+                        <a href="{% url 'company_list' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">{{ page_title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <!-- Brand Name -->
+                        <div class="col-md-6">
+                            <label class="form-label">Brand Name / Medicine Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ product.name|default:'' }}" placeholder="e.g., Crocin 650mg, Augmentin 625 Duo" required>
+                        </div>
+                        
+                        <!-- Pack Size -->
+                        <div class="col-md-6">
+                            <label class="form-label">Packaging / Pack Size <span class="text-danger">*</span></label>
+                            <input type="text" name="pack_size" class="form-control" value="{{ product.pack_size|default:'' }}" placeholder="e.g., 10 Tab, 15 Cap, 100ml Bottle, 1 Vial" required>
+                            <div class="form-text text-muted">Specify the pack configuration (e.g., "10 Tab" means 1 strip of 10 tablets).</div>
+                        </div>
+
+                        <!-- Company -->
+                        <div class="col-md-4">
+                            <label class="form-label">Company / Manufacturer <span class="text-danger">*</span></label>
+                            <select name="company" class="form-select" required>
+                                <option value="">Select Company</option>
+                                {% for company in companies %}
+                                <option value="{{ company.id }}" {% if product.company_id == company.id %}selected{% endif %}>
+                                    {{ company.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Product Type -->
+                        <div class="col-md-4">
+                            <label class="form-label">Product Type / Dosage Form <span class="text-danger">*</span></label>
+                            <select name="product_type" class="form-select" required>
+                                <option value="">Select Dosage Form</option>
+                                {% for type in types %}
+                                <option value="{{ type.id }}" {% if product.product_type_id == type.id %}selected{% endif %}>
+                                    {{ type.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Drug Composition -->
+                        <div class="col-md-4">
+                            <label class="form-label">Drug Generic Composition (Salt)</label>
+                            <select name="drug_composition" class="form-select">
+                                <option value="">Select Generic Salt (Optional)</option>
+                                {% for drug in drugs %}
+                                <option value="{{ drug.id }}" {% if product.drug_composition_id == drug.id %}selected{% endif %}>
+                                    {{ drug.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- HSN Code -->
+                        <div class="col-md-4">
+                            <label class="form-label">HSN Code</label>
+                            <input type="text" name="hsn_code" class="form-control" value="{{ product.hsn_code|default:'' }}" placeholder="e.g., 3004">
+                        </div>
+
+                        <!-- GST Rate -->
+                        <div class="col-md-4">
+                            <label class="form-label">GST Rate (%) <span class="text-danger">*</span></label>
+                            <select name="gst_rate" class="form-select" required>
+                                <option value="0.00" {% if product.gst_rate == 0.00 %}selected{% endif %}>0% Exempted</option>
+                                <option value="5.00" {% if product.gst_rate == 5.00 %}selected{% endif %}>5%</option>
+                                <option value="12.00" {% if product.gst_rate == 12.00 or not product %}selected{% endif %}>12% (Standard Pharma)</option>
+                                <option value="18.00" {% if product.gst_rate == 18.00 %}selected{% endif %}>18%</option>
+                                <option value="28.00" {% if product.gst_rate == 28.00 %}selected{% endif %}>28%</option>
+                            </select>
+                        </div>
+
+                        <!-- Min Stock Alert -->
+                        <div class="col-md-4">
+                            <label class="form-label">Minimum Stock Alert Level <span class="text-danger">*</span></label>
+                            <input type="number" name="min_stock" class="form-control" value="{{ product.min_stock|default:10 }}" min="0" required>
+                            <div class="form-text text-muted">Warns on dashboard when stock falls below this quantity.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">Save Product Item</button>
+                        <a href="{% url 'product_list' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

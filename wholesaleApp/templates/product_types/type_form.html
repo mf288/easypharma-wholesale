@@ -1,0 +1,36 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">{{ page_title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Dosage Form Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ p_type.name|default:'' }}" placeholder="e.g., Tablet, Capsule, Syrup, Injection, Ointment" required>
+                            <div class="form-text text-muted">Defines how product items will be categorized for sales invoices and pack counts.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">Save Product Type</button>
+                        <a href="{% url 'type_list' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

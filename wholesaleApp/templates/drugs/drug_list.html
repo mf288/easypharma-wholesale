@@ -1,0 +1,58 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}Drug Composition Master{% endblock %}
+{% block page_title %}Drug Composition Master{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>Generic Salts & Chemical Compositions ({{ drugs.count }})</h4>
+    <a href="{% url 'drug_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add Generic Salt
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Generic / Composition Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for drug in drugs %}
+                <tr>
+                    <td><strong>{{ drug.name }}</strong></td>
+                    <td>
+                        {% if drug.status %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'drug_edit' drug.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'drug_delete' drug.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this composition generic?')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center py-4 text-muted">
+                        <i class="bi bi-droplet fs-2 d-block mb-2"></i>
+                        No generics found. Click "Add Generic Salt" to get started.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

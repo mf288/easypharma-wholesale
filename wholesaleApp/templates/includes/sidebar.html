@@ -24,9 +24,12 @@
                 <div class="collapse ms-3" id="mastersCollapse">
                     <ul class="nav flex-column">
                         <li class="nav-item"><a href="#" class="nav-link text-light">Area Master</a></li>
+                        <li class="nav-item"><a href="{% url 'company_list' %}" class="nav-link text-light">Company Master</a></li>
+                        <li class="nav-item"><a href="{% url 'drug_list' %}" class="nav-link text-light">Drug Composition</a></li>
+                        <li class="nav-item"><a href="{% url 'type_list' %}" class="nav-link text-light">Product Type / Form</a></li>
                         <li class="nav-item"><a href="{% url 'supplier_list' %}" class="nav-link text-light">Supplier Master</a></li>
                         <li class="nav-item"><a href="{% url 'customer_list' %}" class="nav-link text-light">Customer Master</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Product Master</a></li>
+                        <li class="nav-item"><a href="{% url 'product_list' %}" class="nav-link text-light">Product Master</a></li>
                     </ul>
                 </div>
             </li>
