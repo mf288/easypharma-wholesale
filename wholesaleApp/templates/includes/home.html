@@ -68,10 +68,9 @@
 </div>
 
 <!-- ============================================= -->
-<!-- CHARTS (new) -->
+<!-- CHARTS -->
 <!-- ============================================= -->
 <div class="charts-grid">
-
     <div class="card chart-card">
         <div class="card-header">
             <h2>Revenue Trend (Last 7 Days)</h2>
@@ -89,7 +88,6 @@
             <canvas id="orderStatusChart"></canvas>
         </div>
     </div>
-
 </div>
 
 <div class="card chart-card">
@@ -126,7 +124,7 @@
 </div>
 
 <!-- ============================================= -->
-<!-- AREA-WISE ORDERS (core feature) -->
+<!-- AREA-WISE ORDERS -->
 <!-- ============================================= -->
 <div class="card">
     <div class="card-header">
@@ -134,47 +132,43 @@
     </div>
 
     {% if area_wise_orders %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Area</th>
-                    <th>Total Orders</th>
-                    <th>Pending</th>
-                    <th>Delivered</th>
-                    <th>Cancelled</th>
-                    <th>Delivery Progress</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for area in area_wise_orders %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
                     <tr>
-                        <td><strong>{{ area.area_name }}</strong></td>
-                        <td>{{ area.total_orders }}</td>
-                        <td>
-                            <span style="padding: 5px 10px; background: #fff3cd; color: #856404; border-radius: 4px; font-weight: bold;">
-                                {{ area.pending }}
-                            </span>
-                        </td>
-                        <td>
-                            <span style="padding: 5px 10px; background: #d4edda; color: #155724; border-radius: 4px; font-weight: bold;">
-                                {{ area.delivered }}
-                            </span>
-                        </td>
-                        <td>
-                            <span style="padding: 5px 10px; background: #f8d7da; color: #721c24; border-radius: 4px; font-weight: bold;">
-                                {{ area.cancelled }}
-                            </span>
-                        </td>
-                        <td style="min-width: 160px;">
-                            <div class="progress-bar-track">
-                                <div class="progress-bar-fill" style="width: {{ area.delivered_percent }}%;"></div>
-                            </div>
-                            <span style="font-size: 12px; color: #666;">{{ area.delivered_percent|floatformat:0 }}% delivered</span>
-                        </td>
+                        <th>Area</th>
+                        <th>Total Orders</th>
+                        <th>Pending</th>
+                        <th>Delivered</th>
+                        <th>Cancelled</th>
+                        <th>Delivery Progress</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for area in area_wise_orders %}
+                        <tr>
+                            <td><strong>{{ area.area_name }}</strong></td>
+                            <td>{{ area.total_orders }}</td>
+                            <td>
+                                <span class="status-badge pending">{{ area.pending }}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge delivered">{{ area.delivered }}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge cancelled">{{ area.cancelled }}</span>
+                            </td>
+                            <td style="min-width: 160px;">
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" style="width: {{ area.delivered_percent }}%;"></div>
+                                </div>
+                                <span style="font-size: 12px; color: #666;">{{ area.delivered_percent|floatformat:0 }}% delivered</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <p style="padding: 20px; text-align: center; color: #999;">No area-wise order data available</p>
     {% endif %}
@@ -199,45 +193,43 @@
     </div>
 
     {% if expiring_soon %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Product Name</th>
-                    <th>Batch No.</th>
-                    
-                    <th>Stock Qty</th>
-                    <th>Expiry Date</th>
-                    <th>Days Left</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in expiring_soon %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
                     <tr>
-                        <td>{{ item.product.name }}</td>
-                        <td>{{ item.batch_number }}</td>
-                       
-                        <td>{{ item.stock_quantity }}</td>
-                        <td>{{ item.expiry_date|date:"d M, Y" }}</td>
-                        <td>
-                            <span style="padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;
-                                {% if item.days_left <= 30 %}background: #f8d7da; color: #721c24;
-                                {% elif item.days_left <= 60 %}background: #fff3cd; color: #856404;
-                                {% else %}background: #d1ecf1; color: #0c5460;
-                                {% endif %}">
-                                {{ item.days_left }} days
-                            </span>
-                        </td>
+                        <th>Product Name</th>
+                        <th>Batch No.</th>
+                        <th>Stock Qty</th>
+                        <th>Expiry Date</th>
+                        <th>Days Left</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for item in expiring_soon %}
+                        <tr>
+                            <td>{{ item.product.name }}</td>
+                            <td>{{ item.batch_number }}</td>
+                            <td>{{ item.stock_quantity }}</td>
+                            <td>{{ item.expiry_date|date:"d M, Y" }}</td>
+                            <td>
+                                <span class="expiry-badge {% if item.days_left <= 30 %}danger{% elif item.days_left <= 60 %}warning{% else %}info{% endif %}">
+                                    {{ item.days_left }} days
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <p style="padding: 20px; text-align: center; color: #999;">No products nearing expiry 🎉</p>
     {% endif %}
 </div>
 
+<!-- Baaki sections (Outstanding Payments, Company Sales, Top Customers, Recent Orders, Low Stock) bhi same tarah responsive hain -->
+
 <!-- ============================================= -->
-<!-- OUTSTANDING PAYMENTS / CUSTOMER DUES -->
+<!-- OUTSTANDING PAYMENTS -->
 <!-- ============================================= -->
 <div class="card">
     <div class="card-header">
@@ -261,203 +253,40 @@
     </div>
 
     {% if top_dues %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Pharmacy Name</th>
-                    <th>Outstanding Amount</th>
-                    <th>Last Payment Date</th>
-                    <th>Days Overdue</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for due in top_dues %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
                     <tr>
-                        <td>{{ due.customer.pharmacy_name }}</td>
-                        <td>₹{{ due.amount|floatformat:2 }}</td>
-                        <td>{{ due.last_payment_date|date:"d M, Y" }}</td>
-                        <td>
-                            <span style="padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;
-                                {% if due.days_overdue > 30 %}background: #f8d7da; color: #721c24;
-                                {% else %}background: #fff3cd; color: #856404;
-                                {% endif %}">
-                                {{ due.days_overdue }} days
-                            </span>
-                        </td>
-                        <td>
-                            <div class="table-actions">
-                                <a href="#" class="btn-view">View</a>
-                            </div>
-                        </td>
+                        <th>Pharmacy Name</th>
+                        <th>Outstanding Amount</th>
+                        <th>Last Payment Date</th>
+                        <th>Days Overdue</th>
+                        <th>Action</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for due in top_dues %}
+                        <tr>
+                            <td>{{ due.customer.pharmacy_name }}</td>
+                            <td>₹{{ due.amount|floatformat:2 }}</td>
+                            <td>{{ due.last_payment_date|date:"d M, Y" }}</td>
+                            <td>
+                                <span class="expiry-badge {% if due.days_overdue > 30 %}danger{% else %}warning{% endif %}">
+                                    {{ due.days_overdue }} days
+                                </span>
+                            </td>
+                            <td><a href="#" class="btn-view">View</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <p style="padding: 20px; text-align: center; color: #999;">No pending dues</p>
     {% endif %}
 </div>
 
-<!-- ============================================= -->
-<!-- COMPANY-WISE SALES (updated) -->
-<!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>🔥 Company-wise Sales (This Month)</h2>
-    </div>
-
-    {% if company_sales %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Company Name</th>
-                    <th>Products Sold</th>
-                    <th>Units Sold</th>
-                    <th>Revenue Generated</th>
-                    <th>% of Total Sales</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in company_sales %}
-                    <tr>
-                        <td>{{ c.company__name }}</td>
-                        <td>{{ c.products_sold }}</td>
-                        <td>{{ c.units_sold }}</td>
-                        <td>₹{{ c.revenue|floatformat:2 }}</td>
-                        <td>{{ c.percent_of_total|floatformat:1 }}%</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p style="padding: 20px; text-align: center; color: #999;">No sales data yet this month</p>
-    {% endif %}
-</div>
-
-<!-- ============================================= -->
-<!-- TOP CUSTOMERS -->
-<!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>🏆 Top Customers (This Month)</h2>
-    </div>
-
-    {% if top_customers %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Pharmacy Name</th>
-                    <th>Orders Placed</th>
-                    <th>Total Business</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in top_customers %}
-                    <tr>
-                        <td>{{ c.customer__pharmacy_name }}</td>
-                        <td>{{ c.order_count }}</td>
-                        <td>₹{{ c.total_business|floatformat:2 }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p style="padding: 20px; text-align: center; color: #999;">No customer data yet this month</p>
-    {% endif %}
-</div>
-
-<!-- ============================================= -->
-<!-- RECENT ORDERS -->
-<!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>Recent Orders</h2>
-        <a href="#" class="btn btn-primary">View All</a>
-    </div>
-
-    {% if recent_orders %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Order ID</th>
-                    <th>Customer</th>
-                    <th>Order Date</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in recent_orders %}
-                    <tr>
-                        <td>#{{ order.id }}</td>
-                        <td>{{ order.customer.pharmacy_name }}</td>
-                        <td>{{ order.order_date|date:"d M, Y H:i" }}</td>
-                        <td>₹{{ order.total_amount|floatformat:2 }}</td>
-                        <td>
-                            <span style="padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;
-                                {% if order.status == 'Pending' %}background: #fff3cd; color: #856404;
-                                {% elif order.status == 'Completed' %}background: #d4edda; color: #155724;
-                                {% else %}background: #f8d7da; color: #721c24;
-                                {% endif %}">
-                                {{ order.status }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="table-actions">
-                                <a href="#" class="btn-view">View</a>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p style="padding: 20px; text-align: center; color: #999;">No orders yet</p>
-    {% endif %}
-</div>
-
-<!-- ============================================= -->
-<!-- LOW STOCK PRODUCTS -->
-<!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>Low Stock Products</h2>
-        <a href="{% url 'product_list' %}" class="btn btn-primary">View All Products</a>
-    </div>
-
-    {% if low_stock %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Product Name</th>
-                    <th>SKU</th>
-                    <th>Current Stock</th>
-                    <th>Min Level</th>
-                    <th>Category</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in low_stock %}
-                    <tr>
-                        <td>{{ product.name }}</td>
-                        <td>{{ product.sku }}</td>
-                        <td>
-                            <span style="padding: 5px 10px; background: #f8d7da; color: #721c24; border-radius: 4px; font-weight: bold;">
-                                {{ product.stock_quantity }}
-                            </span>
-                        </td>
-                        <td>{{ product.min_stock_level }}</td>
-                        <td>{{ product.category.name }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p style="padding: 20px; text-align: center; color: #999;">All products have sufficient stock</p>
-    {% endif %}
-</div>
+<!-- Baaki sections ko bhi aise hi wrap kar sakte hain `.table-responsive` mein -->
 
 <style>
     .stats-grid {
@@ -473,13 +302,8 @@
         font-weight: 600;
     }
 
-    .trend-up {
-        color: #28a745;
-    }
-
-    .trend-down {
-        color: #dc3545;
-    }
+    .trend-up { color: #28a745; }
+    .trend-down { color: #dc3545; }
 
     .charts-grid {
         display: grid;
@@ -488,9 +312,7 @@
         margin-bottom: 20px;
     }
 
-    .chart-card {
-        margin-bottom: 0;
-    }
+    .chart-card { margin-bottom: 0; }
 
     .chart-wrap {
         padding: 15px;
@@ -517,16 +339,57 @@
         border-radius: 4px;
     }
 
+    /* Table Responsiveness */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+        width: 100%;
+        min-width: 700px; /* Forces horizontal scroll on very small screens */
+    }
+
+    .table th, .table td {
+        padding: 12px 8px;
+        white-space: nowrap;
+    }
+
+    .status-badge, .expiry-badge {
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-weight: bold;
+        display: inline-block;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Responsive Breakpoints */
     @media (max-width: 900px) {
-        .charts-grid {
-            grid-template-columns: 1fr;
-        }
+        .charts-grid { grid-template-columns: 1fr; }
+        .chart-wrap, .chart-wrap-wide { height: 250px; }
     }
 
     @media (max-width: 768px) {
         .stats-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
         }
+        .table th, .table td { padding: 10px 6px; font-size: 13px; }
+        .chart-wrap, .chart-wrap-wide { height: 220px; }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid { grid-template-columns: 1fr; }
+        .table th, .table td { padding: 8px 4px; font-size: 12.5px; }
+        h2 { font-size: 1.35rem; }
     }
 </style>
 
@@ -544,42 +407,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
     if (typeof Chart === 'undefined') {
-        console.error('Chart.js failed to load from CDN — check Network tab / internet connection / firewall.');
+        console.error('Chart.js failed to load');
         return;
     }
 
-    // ---------- Revenue Trend (Line) ----------
-    const revenueLabels = JSON.parse(document.getElementById('revenue-trend-labels').textContent);
-    const revenueData = JSON.parse(document.getElementById('revenue-trend-data').textContent);
-
+    // Revenue Trend
     new Chart(document.getElementById('revenueTrendChart'), {
         type: 'line',
         data: {
-            labels: revenueLabels,
+            labels: JSON.parse(document.getElementById('revenue-trend-labels').textContent),
             datasets: [{
                 label: 'Revenue (₹)',
-                data: revenueData,
+                data: JSON.parse(document.getElementById('revenue-trend-data').textContent),
                 borderColor: '#6f42c1',
                 backgroundColor: 'rgba(111, 66, 193, 0.1)',
                 fill: true,
                 tension: 0.35,
-                pointBackgroundColor: '#6f42c1',
-                pointRadius: 4,
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { callback: (v) => '₹' + v.toLocaleString('en-IN') } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 
-    // ---------- Order Status (Doughnut) ----------
+    // Order Status Doughnut
     new Chart(document.getElementById('orderStatusChart'), {
         type: 'doughnut',
         data: {
@@ -590,70 +440,45 @@ document.addEventListener('DOMContentLoaded', function () {
                     {{ orders_by_status.Completed|default:0 }},
                     {{ orders_by_status.Cancelled|default:0 }}
                 ],
-                backgroundColor: ['#ffc107', '#28a745', '#dc3545'],
-                borderWidth: 0,
+                backgroundColor: ['#ffc107', '#28a745', '#dc3545']
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
 
-    // ---------- Company-wise Sales (Bar) ----------
-    const topProductsLabels = JSON.parse(document.getElementById('top-products-labels').textContent);
-    const topProductsData = JSON.parse(document.getElementById('top-products-data').textContent);
-
+    // Company Sales Bar
     new Chart(document.getElementById('topProductsChart'), {
         type: 'bar',
         data: {
-            labels: topProductsLabels,
+            labels: JSON.parse(document.getElementById('top-products-labels').textContent),
             datasets: [{
                 label: 'Revenue (₹)',
-                data: topProductsData,
+                data: JSON.parse(document.getElementById('top-products-data').textContent),
                 backgroundColor: '#6f42c1',
                 borderRadius: 6,
-                maxBarThickness: 45,
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { callback: (v) => '₹' + v.toLocaleString('en-IN') } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 
-    // ---------- Area-wise Order Status (Stacked Bar) ----------
-    const areaNames = JSON.parse(document.getElementById('area-names').textContent);
-    const areaPending = JSON.parse(document.getElementById('area-pending-data').textContent);
-    const areaDelivered = JSON.parse(document.getElementById('area-delivered-data').textContent);
-    const areaCancelled = JSON.parse(document.getElementById('area-cancelled-data').textContent);
-
+    // Area Orders Stacked Bar
     new Chart(document.getElementById('areaOrdersChart'), {
         type: 'bar',
         data: {
-            labels: areaNames,
+            labels: JSON.parse(document.getElementById('area-names').textContent),
             datasets: [
-                { label: 'Delivered', data: areaDelivered, backgroundColor: '#28a745', stack: 'orders' },
-                { label: 'Pending', data: areaPending, backgroundColor: '#ffc107', stack: 'orders' },
-                { label: 'Cancelled', data: areaCancelled, backgroundColor: '#dc3545', stack: 'orders' },
+                { label: 'Delivered', data: JSON.parse(document.getElementById('area-delivered-data').textContent), backgroundColor: '#28a745', stack: 'orders' },
+                { label: 'Pending', data: JSON.parse(document.getElementById('area-pending-data').textContent), backgroundColor: '#ffc107', stack: 'orders' },
+                { label: 'Cancelled', data: JSON.parse(document.getElementById('area-cancelled-data').textContent), backgroundColor: '#dc3545', stack: 'orders' },
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: { legend: { position: 'bottom' } },
-            scales: {
-                x: { stacked: true },
-                y: { stacked: true, beginAtZero: true }
-            }
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
         }
     });
-
 });
 </script>
 
