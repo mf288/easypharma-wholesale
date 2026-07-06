@@ -1,44 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
+from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.db.models import Sum, Count, Q
-from datetime import datetime, timedelta
+
 from .models import Category, Product, Customer, Order, OrderItem
 
-# Dashboard View
+
+
 def dashboard(request):
-    """Main dashboard with key metrics"""
-    total_products = Product.objects.count()
-    total_customers = Customer.objects.count()
-    total_orders = Order.objects.count()
-    
-    # Revenue calculation
-    completed_orders = Order.objects.filter(status='Completed')
-    total_revenue = completed_orders.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    
-    # Recent orders
-    recent_orders = Order.objects.all().order_by('-order_date')[:5]
-    
-    # Low stock products
-    low_stock = Product.objects.filter(stock_quantity__lte=10)
-    
-    # Orders by status
-    orders_by_status = {
-        'Pending': Order.objects.filter(status='Pending').count(),
-        'Completed': Order.objects.filter(status='Completed').count(),
-        'Cancelled': Order.objects.filter(status='Cancelled').count(),
-    }
-    
-    context = {
-        'total_products': total_products,
-        'total_customers': total_customers,
-        'total_orders': total_orders,
-        'total_revenue': total_revenue,
-        'recent_orders': recent_orders,
-        'low_stock': low_stock,
-        'orders_by_status': orders_by_status,
-    }
-    return render(request, 'dashboard.html', context)
+    pass
+
+
 
 # Product Views
 def product_list(request):

@@ -11,7 +11,7 @@
         <ul class="nav flex-column">
             
             <li class="nav-item mb-1">
-                <a href="{% url 'dashboard' %}" class="nav-link text-white active">
+                <a href="{% url 'home' %}" class="nav-link text-white active">
                     <i class="bi bi-speedometer2 me-2"></i> Dashboard
                 </a>
             </li>
@@ -30,6 +30,9 @@
                         <li class="nav-item"><a href="{% url 'supplier_list' %}" class="nav-link text-light">Supplier Master</a></li>
                         <li class="nav-item"><a href="{% url 'customer_list' %}" class="nav-link text-light">Customer Master</a></li>
                         <li class="nav-item"><a href="{% url 'product_list' %}" class="nav-link text-light">Product Master</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Godown / Rack Master</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Scheme / Discount Master</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Unit / HSN Master</a></li>
                     </ul>
                 </div>
             </li>
@@ -42,18 +45,89 @@
                 <div class="collapse ms-3" id="transCollapse">
                     <ul class="nav flex-column">
                         <li class="nav-item"><a href="#" class="nav-link text-light">Purchase</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Purchase Return</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Sales / Billing</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Sales Return</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Payment Collection</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Payment to Supplier</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Inventory / Stock -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#stockCollapse" role="button">
+                    <i class="bi bi-box-seam-fill me-2"></i> Inventory
+                </a>
+                <div class="collapse ms-3" id="stockCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Stock Summary</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Batch &amp; Expiry Tracking</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Stock Adjustment</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Godown Transfer</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Damaged / Expired Stock</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Accounts / Ledger -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#accountsCollapse" role="button">
+                    <i class="bi bi-wallet2 me-2"></i> Accounts
+                </a>
+                <div class="collapse ms-3" id="accountsCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Customer Ledger</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Supplier Ledger</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Outstanding / Dues</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Cash / Bank Book</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Compliance -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#complianceCollapse" role="button">
+                    <i class="bi bi-shield-check me-2"></i> Compliance
+                </a>
+                <div class="collapse ms-3" id="complianceCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Drug License Renewal</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">GST Filing Reminders</a></li>
                     </ul>
                 </div>
             </li>
 
             <!-- Reports -->
             <li class="nav-item mt-3">
-                <a href="#" class="nav-link text-white">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#reportsCollapse" role="button">
                     <i class="bi bi-bar-chart-fill me-2"></i> Reports
                 </a>
+                <div class="collapse ms-3" id="reportsCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Sales Report</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Purchase Report</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Stock / Expiry Report</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">GST Report</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Profit &amp; Loss</a></li>
+                    </ul>
+                </div>
             </li>
+
+            <!-- Settings -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#settingsCollapse" role="button">
+                    <i class="bi bi-gear-fill me-2"></i> Settings
+                </a>
+                <div class="collapse ms-3" id="settingsCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">User Management</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Company Profile</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Backup / Restore</a></li>
+                    </ul>
+                </div>
+            </li>
+
         </ul>
     </div>
 </div>
