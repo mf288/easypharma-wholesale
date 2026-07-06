@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Customer - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Delete Customer{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 50px auto;">
+    <div style="text-align: center; padding: 40px;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 64px; color: #dc3545; margin-bottom: 20px;"></i>
+        
+        <h2 style="margin-bottom: 20px;">Confirm Delete</h2>
+        
+        <p style="font-size: 16px; margin-bottom: 30px; color: #666;">
+            Are you sure you want to delete <strong>{{ customer.pharmacy_name }}</strong>? This action cannot be undone.
+        </p>
+        
+        <form method="post" style="display: flex; gap: 10px; justify-content: center;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete Customer
+            </button>
+            <a href="{% url 'customer_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

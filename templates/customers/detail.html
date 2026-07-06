@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ customer.pharmacy_name }} - EasyPharma Wholesale{% endblock %}
+{% block page_title %}{{ customer.pharmacy_name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Customer Details</h2>
+        <div class="btn-group">
+            <a href="{% url 'customer_edit' customer.id %}" class="btn btn-primary">Edit</a>
+            <a href="{% url 'customer_delete' customer.id %}" class="btn btn-danger">Delete</a>
+            <a href="{% url 'customer_list' %}" class="btn btn-secondary">Back</a>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
+        <div>
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Pharmacy Name</label>
+                <p style="font-size: 20px; font-weight: bold; margin-top: 5px;">{{ customer.pharmacy_name }}</p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Contact Person</label>
+                <p style="font-size: 16px; margin-top: 5px;">{{ customer.name }}</p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Phone</label>
+                <p style="font-size: 16px; margin-top: 5px;">
+                    <a href="tel:{{ customer.phone }}" style="color: #667eea; text-decoration: none;">
+                        {{ customer.phone }}
+                    </a>
+                </p>
+            </div>
+        </div>
+        
+        <div>
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Email</label>
+                <p style="font-size: 16px; margin-top: 5px;">
+                    {% if customer.email %}
+                        <a href="mailto:{{ customer.email }}" style="color: #667eea; text-decoration: none;">
+                            {{ customer.email }}
+                        </a>
+                    {% else %}
+                        <span style="color: #999;">Not provided</span>
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: bold; color: #667eea; font-size: 12px; text-transform: uppercase;">Address</label>
+                <p style="font-size: 16px; margin-top: 5px;">{{ customer.address }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+    
+    <!-- Customer Orders -->
+    <h3 style="margin-bottom: 20px;">Order History</h3>
+    
+    {% if orders %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Order Date</th>
+                    <th>Total Amount</th>
+                    <th>Items</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td>#{{ order.id }}</td>
+                        <td>{{ order.order_date|date:"d M, Y H:i" }}</td>
+                        <td>₹{{ order.total_amount|floatformat:2 }}</td>
+                        <td>{{ order.items.count }} items</td>
+                        <td>
+                            <span style="padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;
+                                {% if order.status == 'Pending' %}background: #fff3cd; color: #856404;
+                                {% elif order.status == 'Completed' %}background: #d4edda; color: #155724;
+                                {% else %}background: #f8d7da; color: #721c24;
+                                {% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'order_detail' order.id %}" class="btn-view" style="padding: 6px 12px; background: #17a2b8; color: white; border-radius: 4px; text-decoration: none;">View</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="padding: 40px; text-align: center; color: #999;">
+            <i class="fas fa-shopping-cart" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+            <p>No orders yet</p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}

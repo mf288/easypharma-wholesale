@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - EasyPharma Wholesale{% endblock %}
+{% block page_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<!-- Monthly Sales Card -->
+<div class="card">
+    <div class="card-header">
+        <h2>Monthly Sales (Last 30 Days)</h2>
+    </div>
+    
+    <div style="text-align: center; padding: 40px;">
+        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">Total Revenue</p>
+        <p style="font-size: 48px; font-weight: bold; color: #667eea;">₹{{ monthly_sales|floatformat:2 }}</p>
+    </div>
+</div>
+
+<!-- Sales by Category -->
+<div class="card">
+    <div class="card-header">
+        <h2>Sales by Category</h2>
+    </div>
+    
+    {% if sales_by_category %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Total Quantity Sold</th>
+                    <th>Total Sales (₹)</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% with total_sales=sales_by_category|sum:"total_sales" %}
+                    {% for sale in sales_by_category %}
+                        <tr>
+                            <td><strong>{{ sale.product__category__name }}</strong></td>
+                            <td>{{ sale.total_quantity }}</td>
+                            <td>₹{{ sale.total_sales|floatformat:2 }}</td>
+                            <td>
+                                {% if total_sales > 0 %}
+                                    {{ sale.total_sales|add:total_sales|add:"-1"|mul:100|add:total_sales|add:"-1"|div:total_sales|floatformat:1 }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endwith %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="padding: 20px; text-align: center; color: #999;">No sales data available</p>
+    {% endif %}
+</div>
+
+<!-- Top Selling Products -->
+<div class="card">
+    <div class="card-header">
+        <h2>Top 10 Selling Products</h2>
+    </div>
+    
+    {% if top_products %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Total Quantity Sold</th>
+                    <th>Total Revenue (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in top_products %}
+                    <tr>
+                        <td><strong>{{ product.product__name }}</strong></td>
+                        <td>
+                            <span style="padding: 5px 10px; background: #d4edda; color: #155724; border-radius: 4px; font-weight: bold;">
+                                {{ product.total_quantity }}
+                            </span>
+                        </td>
+                        <td><strong>₹{{ product.total_sales|floatformat:2 }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="padding: 20px; text-align: center; color: #999;">No sales data available</p>
+    {% endif %}
+</div>
+
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    .table thead {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .table td {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+</style>
+{% endblock %}
