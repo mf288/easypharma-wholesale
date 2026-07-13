@@ -1,0 +1,53 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}Batchwise Stock{% endblock %}
+{% block page_title %}Batchwise Stock{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>Batchwise Stock ({{ stocks.count }})</h4>
+    <a href="{% url 'purchase_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Purchases
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Company</th>
+                    <th>Batch No.</th>
+                    <th>Expiry</th>
+                    <th>Purchase Rate</th>
+                    <th>MRP</th>
+                    <th>Available Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocks %}
+                <tr>
+                    <td><strong>{{ stock.product.name }}</strong> <small class="text-muted">({{ stock.product.pack_size }})</small></td>
+                    <td>{{ stock.product.company.name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ stock.batch_number }}</span></td>
+                    <td>{{ stock.expiry_date|date:'M-Y' }}</td>
+                    <td>₹ {{ stock.purchase_rate }}</td>
+                    <td>₹ {{ stock.mrp }}</td>
+                    <td class="fw-bold">{{ stock.quantity }} units</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
+                        No batchwise stock yet. Stock is created automatically once you save a Purchase Entry.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

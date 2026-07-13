@@ -1,0 +1,236 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">{{ page_title }}</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="purchaseForm">
+            {% csrf_token %}
+
+            <!-- ==================== INVOICE HEADER ==================== -->
+            <div class="row g-4 mb-2">
+                <div class="col-md-3">
+                    <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                    <select name="supplier" class="form-select" required>
+                        <option value="">Select Supplier</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if purchase.supplier_id == supplier.id %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Supplier Invoice / Bill No. <span class="text-danger">*</span></label>
+                    <input type="text" name="invoice_number" class="form-control" value="{{ purchase.invoice_number|default:'' }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Invoice Date <span class="text-danger">*</span></label>
+                    <input type="date" name="invoice_date" class="form-control" value="{{ purchase.invoice_date|date:'Y-m-d'|default:'' }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Remarks</label>
+                    <input type="text" name="remarks" class="form-control" value="{{ purchase.remarks|default:'' }}" placeholder="Optional note">
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- ==================== LINE ITEMS ==================== -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Purchase Items (Batchwise)</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addItemBtn">
+                    <i class="bi bi-plus-circle"></i> Add Item
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="itemsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width:200px;">Product</th>
+                            <th style="min-width:120px;">Batch No.</th>
+                            <th style="min-width:150px;">Expiry Date</th>
+                            <th style="min-width:90px;">Qty</th>
+                            <th style="min-width:90px;">Free Qty</th>
+                            <th style="min-width:110px;">Purchase Rate</th>
+                            <th style="min-width:110px;">MRP</th>
+                            <th style="min-width:90px;">GST %</th>
+                            <th style="min-width:90px;">Disc %</th>
+                            <th style="min-width:110px;">Amount</th>
+                            <th style="width:40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTableBody">
+                        <!-- Rows injected by JS (template below) -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="9" class="text-end fw-bold">Total Invoice Amount</td>
+                            <td class="fw-bold" id="grandTotalDisplay">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary btn-lg px-5">Save Purchase Entry</button>
+                <a href="{% url 'purchase_list' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Hidden template row (not submitted, cloned by JS) -->
+<template id="rowTemplate">
+    <tr class="item-row">
+        <td>
+            <select name="item_product[]" class="form-select product-select" required>
+                <option value="">Select Product</option>
+                {% for product in products %}
+                <option value="{{ product.id }}" data-gst="{{ product.gst_rate }}">{{ product.name }} ({{ product.pack_size }})</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td><input type="text" name="item_batch[]" class="form-control batch-input" required></td>
+        <td><input type="date" name="item_expiry[]" class="form-control expiry-input" required></td>
+        <td><input type="number" min="0" name="item_quantity[]" class="form-control qty-input calc-trigger" value="0" required></td>
+        <td><input type="number" min="0" name="item_free_quantity[]" class="form-control free-qty-input calc-trigger" value="0"></td>
+        <td><input type="number" min="0" step="0.01" name="item_purchase_rate[]" class="form-control rate-input calc-trigger" value="0.00" required></td>
+        <td><input type="number" min="0" step="0.01" name="item_mrp[]" class="form-control mrp-input" value="0.00" required></td>
+        <td><input type="number" min="0" step="0.01" name="item_gst_rate[]" class="form-control gst-input calc-trigger" value="12.00"></td>
+        <td><input type="number" min="0" step="0.01" name="item_discount_percent[]" class="form-control discount-input calc-trigger" value="0.00"></td>
+        <td><span class="row-amount fw-bold">0.00</span></td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const tableBody = document.getElementById('itemsTableBody');
+    const rowTemplate = document.getElementById('rowTemplate');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const grandTotalDisplay = document.getElementById('grandTotalDisplay');
+
+    function calculateRowAmount(row) {
+        const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+        const gst = parseFloat(row.querySelector('.gst-input').value) || 0;
+        const discount = parseFloat(row.querySelector('.discount-input').value) || 0;
+
+        const taxable = qty * rate;
+        const afterDiscount = taxable - (taxable * discount / 100);
+        const amount = afterDiscount + (afterDiscount * gst / 100);
+
+        row.querySelector('.row-amount').textContent = amount.toFixed(2);
+        return amount;
+    }
+
+    function calculateGrandTotal() {
+        let total = 0;
+        tableBody.querySelectorAll('.item-row').forEach(function (row) {
+            total += calculateRowAmount(row);
+        });
+        grandTotalDisplay.textContent = total.toFixed(2);
+    }
+
+    function addRow(prefill) {
+        const clone = rowTemplate.content.cloneNode(true);
+        const row = clone.querySelector('.item-row');
+
+        if (prefill) {
+            row.querySelector('.product-select').value = prefill.product_id || '';
+            row.querySelector('.batch-input').value = prefill.batch_number || '';
+            row.querySelector('.expiry-input').value = prefill.expiry_date || '';
+            row.querySelector('.qty-input').value = prefill.quantity || 0;
+            row.querySelector('.free-qty-input').value = prefill.free_quantity || 0;
+            row.querySelector('.rate-input').value = prefill.purchase_rate || 0;
+            row.querySelector('.mrp-input').value = prefill.mrp || 0;
+            row.querySelector('.gst-input').value = prefill.gst_rate || 12;
+            row.querySelector('.discount-input').value = prefill.discount_percent || 0;
+        }
+
+        tableBody.appendChild(clone);
+        calculateGrandTotal();
+    }
+
+    // Auto-fill GST rate when a product is picked (only if user hasn't already changed it manually)
+    tableBody.addEventListener('change', function (e) {
+        if (e.target.classList.contains('product-select')) {
+            const selectedOption = e.target.selectedOptions[0];
+            const gst = selectedOption ? selectedOption.getAttribute('data-gst') : null;
+            const row = e.target.closest('.item-row');
+            if (gst) {
+                row.querySelector('.gst-input').value = gst;
+            }
+            calculateGrandTotal();
+        }
+    });
+
+    // Recalculate on any qty/rate/gst/discount change
+    tableBody.addEventListener('input', function (e) {
+        if (e.target.classList.contains('calc-trigger')) {
+            calculateGrandTotal();
+        }
+    });
+
+    // Remove row
+    tableBody.addEventListener('click', function (e) {
+        const btn = e.target.closest('.remove-row-btn');
+        if (btn) {
+            const row = btn.closest('.item-row');
+            if (tableBody.querySelectorAll('.item-row').length > 1) {
+                row.remove();
+                calculateGrandTotal();
+            } else {
+                // keep at least one row, just clear it
+                row.querySelectorAll('input').forEach(function (input) { input.value = input.type === 'number' ? 0 : ''; });
+                row.querySelector('.product-select').value = '';
+                calculateGrandTotal();
+            }
+        }
+    });
+
+    addItemBtn.addEventListener('click', function () {
+        addRow(null);
+    });
+
+    // ---- Prefill existing items when editing ----
+    const existingItems = [
+        {% for item in items %}
+        {
+            product_id: "{{ item.product_id }}",
+            batch_number: "{{ item.batch_number|escapejs }}",
+            expiry_date: "{{ item.expiry_date|date:'Y-m-d' }}",
+            quantity: {{ item.quantity }},
+            free_quantity: {{ item.free_quantity }},
+            purchase_rate: {{ item.purchase_rate }},
+            mrp: {{ item.mrp }},
+            gst_rate: {{ item.gst_rate }},
+            discount_percent: {{ item.discount_percent }}
+        },
+        {% endfor %}
+    ];
+
+    if (existingItems.length > 0) {
+        existingItems.forEach(function (item) { addRow(item); });
+    } else {
+        addRow(null); // start with one blank row for new purchase entry
+    }
+})();
+</script>
+{% endblock %}
