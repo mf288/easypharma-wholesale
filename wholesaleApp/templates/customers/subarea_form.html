@@ -1,0 +1,47 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">{{ page_title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Parent Area <span class="text-danger">*</span></label>
+                            <select name="area" class="form-select" required>
+                                <option value="">Select Area / City</option>
+                                {% for area in areas %}
+                                <option value="{{ area.id }}" {% if subarea.area_id == area.id %}selected{% endif %}>
+                                    {{ area.city }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label class="form-label">Subarea / Locality Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ subarea.name|default:'' }}" placeholder="e.g., Sector 4, Link Road, Station Road" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">Save Subarea</button>
+                        <a href="{% url 'area_list' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

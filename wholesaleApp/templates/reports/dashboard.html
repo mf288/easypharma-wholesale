@@ -1,0 +1,103 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<style>
+    .report-card {
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        transition: all 0.25s ease;
+        background-color: #ffffff;
+        overflow: hidden;
+    }
+    .report-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    }
+    .report-icon-box {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+    }
+</style>
+
+<div class="row g-4 mt-2">
+    <!-- GST Sales Summary Report Card -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="report-icon-box mb-3 text-primary bg-primary-subtle" style="background-color: #e0f2fe; color: #0369a1;">
+                        📊
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">GST Sales Summary</h5>
+                    <p class="text-muted small">Generate transaction logs grouped by taxable values, discounts, and GST slabs. Essential for GSTR-1 filings.</p>
+                </div>
+                <a href="{% url 'report_sales' %}" class="btn btn-outline-primary rounded-pill w-100 mt-3">
+                    Open Report <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Valuation Report Card -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="report-icon-box mb-3 text-success bg-success-subtle" style="background-color: #dcfce7; color: #15803d;">
+                        📦
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Stock Valuation</h5>
+                    <p class="text-muted small">Evaluate total inventory worth using Purchase Rate (cost valuation) vs Sale Rate (market valuation) across active batches.</p>
+                </div>
+                <a href="{% url 'report_stock' %}" class="btn btn-outline-success rounded-pill w-100 mt-3">
+                    Open Report <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Expiry Alerts Card -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="report-icon-box mb-3 text-danger bg-danger-subtle" style="background-color: #fee2e2; color: #b91c1c;">
+                        ⏳
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Pharma Expiry alerts</h5>
+                    <p class="text-muted small">Track batches expiring in 30, 90, or 180 days to claim replacements or execute return-to-vendor procedures.</p>
+                </div>
+                <a href="{% url 'report_expiry' %}" class="btn btn-outline-danger rounded-pill w-100 mt-3">
+                    Open Report <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding Dues Card -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="report-icon-box mb-3 text-warning bg-warning-subtle" style="background-color: #fef9c3; color: #a16207;">
+                        💰
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Outstanding Ledger</h5>
+                    <p class="text-muted small">Analyze accounts receivables (customer balances) and payables (supplier dues) to keep track of shop cash-flow.</p>
+                </div>
+                <a href="{% url 'report_outstanding' %}" class="btn btn-outline-warning rounded-pill w-100 mt-3">
+                    Open Report <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -23,7 +23,7 @@
                 </a>
                 <div class="collapse ms-3" id="mastersCollapse">
                     <ul class="nav flex-column">
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Area Master</a></li>
+                        <li class="nav-item"><a href="{% url 'area_list' %}" class="nav-link text-light">Area Master</a></li>
                         <li class="nav-item"><a href="{% url 'company_list' %}" class="nav-link text-light">Company Master</a></li>
                         <li class="nav-item"><a href="{% url 'drug_list' %}" class="nav-link text-light">Drug Composition</a></li>
                         <li class="nav-item"><a href="{% url 'type_list' %}" class="nav-link text-light">Product Type / Form</a></li>
@@ -37,19 +37,32 @@
                 </div>
             </li>
 
-            <!-- Transactions -->
+            <!-- Purchase Transactions -->
             <li class="nav-item mt-3">
-                <a class="nav-link text-white" data-bs-toggle="collapse" href="#transCollapse" role="button">
-                    <i class="bi bi-cart-fill me-2"></i> Transactions
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#purchaseCollapse" role="button">
+                    <i class="bi bi-bag-fill me-2"></i> Purchase
                 </a>
-                <div class="collapse ms-3" id="transCollapse">
+                <div class="collapse ms-3" id="purchaseCollapse">
                     <ul class="nav flex-column">
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Purchase</a></li>
+                        <li class="nav-item"><a href="{% url 'po_list' %}" class="nav-link text-light">Purchase Order</a></li>
+                        <li class="nav-item"><a href="{% url 'purchase_entry_list' %}" class="nav-link text-light">Purchase Entry (Bill)</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Purchase Return</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Sales / Billing</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Payment to Supplier</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Sales Transactions -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-white" data-bs-toggle="collapse" href="#salesCollapse" role="button">
+                    <i class="bi bi-cart-fill me-2"></i> Sales / Billing
+                </a>
+                <div class="collapse ms-3" id="salesCollapse">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="#" class="nav-link text-light">Sales Order</a></li>
+                        <li class="nav-item"><a href="{% url 'invoice_list' %}" class="nav-link text-light">Sales Invoice (Bill)</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Sales Return</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Payment Collection</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Payment to Supplier</a></li>
                     </ul>
                 </div>
             </li>
@@ -105,11 +118,11 @@
                 </a>
                 <div class="collapse ms-3" id="reportsCollapse">
                     <ul class="nav flex-column">
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Sales Report</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Purchase Report</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Stock / Expiry Report</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link text-light">GST Report</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link text-light">Profit &amp; Loss</a></li>
+                        <li class="nav-item"><a href="{% url 'reports_dashboard' %}" class="nav-link text-light">Reports Hub</a></li>
+                        <li class="nav-item"><a href="{% url 'report_sales' %}" class="nav-link text-light">GST Sales Summary</a></li>
+                        <li class="nav-item"><a href="{% url 'report_stock' %}" class="nav-link text-light">Stock Valuation</a></li>
+                        <li class="nav-item"><a href="{% url 'report_expiry' %}" class="nav-link text-light">Pharma Expiry Alerts</a></li>
+                        <li class="nav-item"><a href="{% url 'report_outstanding' %}" class="nav-link text-light">Outstanding Ledger</a></li>
                     </ul>
                 </div>
             </li>
@@ -121,7 +134,10 @@
                 </a>
                 <div class="collapse ms-3" id="settingsCollapse">
                     <ul class="nav flex-column">
-                        <li class="nav-item"><a href="#" class="nav-link text-light">User Management</a></li>
+                        {% if user.is_superuser %}
+                        <li class="nav-item"><a href="{% url 'user_list' %}" class="nav-link text-light">User Management (CRUD)</a></li>
+                        <li class="nav-item"><a href="{% url 'user_permission_matrix' %}" class="nav-link text-light">User Permissions Matrix</a></li>
+                        {% endif %}
                         <li class="nav-item"><a href="#" class="nav-link text-light">Company Profile</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Backup / Restore</a></li>
                     </ul>

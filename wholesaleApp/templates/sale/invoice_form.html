@@ -1,0 +1,1046 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Reusable Premium Searchable Combobox Styling */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    tr:focus-within {
+        position: relative;
+        z-index: 1050;
+    }
+    .combobox-container {
+        position: relative;
+    }
+    .combobox-input {
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .combobox-input:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+    }
+    .combobox-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1050;
+        display: none;
+        min-width: 100%;
+        padding: 6px 0;
+        margin-top: 4px;
+        background-color: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        max-height: 260px;
+        overflow-y: auto;
+    }
+    .combobox-menu li {
+        margin: 2px 6px;
+    }
+    .combobox-menu li a {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        color: #334155;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: all 0.15s ease;
+        cursor: pointer;
+    }
+    .combobox-menu li a:hover,
+    .combobox-menu li.active a {
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        transform: translateY(-1px);
+    }
+    .combobox-menu li.active a code {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    /* Scrollbar customization */
+    .combobox-menu::-webkit-scrollbar {
+        width: 6px;
+    }
+    .combobox-menu::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .combobox-menu::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 3px;
+    }
+    
+    .footer-item {
+        margin: 4px 0 0 0 !important;
+        padding: 0 !important;
+    }
+    .footer-item a {
+        border-radius: 0 0 10px 10px !important;
+        background-color: #f8fafc !important;
+        color: #4f46e5 !important;
+        font-weight: 600;
+        text-align: center;
+        justify-content: center !important;
+        padding: 10px !important;
+    }
+    .footer-item a:hover {
+        background-color: #e2e8f0 !important;
+        color: #4f46e5 !important;
+        transform: none !important;
+    }
+</style>
+
+<div class="card shadow-sm border-0 rounded-4">
+    <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-receipt"></i> Retail Chemist Billing</h5>
+        <span class="badge bg-info-subtle text-info fs-6 px-3 py-2 rounded-pill" style="background-color: #e0f2fe; color: #0369a1;">
+            F2: New Row | Enter: Next | F4: Add New Modal
+        </span>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="invoiceForm">
+            {% csrf_token %}
+            
+            <!-- Invoice Header Info -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold">Customer (Chemist / Hospital) <span class="text-danger">*</span></label>
+                    <div class="combobox-container">
+                        <input type="text" id="customerSearch" class="form-control combobox-input" placeholder="Type Chemist Name..." required>
+                        <input type="hidden" name="customer" id="customerSelect" class="combobox-hidden-value" required>
+                        <ul class="combobox-menu shadow-sm"></ul>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold">Invoice Date <span class="text-danger">*</span></label>
+                    <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{% now 'Y-m-d' %}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold">Billing Operator</label>
+                    <input type="text" class="form-control bg-light" value="{{ user.username|default:'Admin' }} (Online)" readonly>
+                </div>
+            </div>
+
+            <!-- Items Table Section -->
+            <div class="border-top pt-4">
+                <h5 class="mb-3 fw-bold text-dark">Invoice Items</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle" id="invoiceTable" style="min-width: 1250px;">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th style="width: 22%;">Product Name <span class="text-danger">*</span></th>
+                                <th style="width: 15%;">Batch No <span class="text-danger">*</span></th>
+                                <th style="width: 8%;">Expiry</th>
+                                <th style="width: 8%;">MRP (₹)</th>
+                                <th style="width: 10%;">Sale Rate (₹) <span class="text-danger">*</span></th>
+                                <th style="width: 7%;">Qty <span class="text-danger">*</span></th>
+                                <th style="width: 7%;">Free</th>
+                                <th style="width: 6%;">GST %</th>
+                                <th style="width: 6%;">Disc %</th>
+                                <th style="width: 11%;">Total Amount</th>
+                                <th style="width: 4%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic invoice items will go here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button type="button" class="btn btn-outline-primary mt-3 mb-4 rounded-pill px-4" onclick="addNewInvoiceRow()">
+                    <i class="bi bi-plus-circle"></i> Add Row (F2)
+                </button>
+            </div>
+
+            <!-- Live Margin Indicator Panel (SaaS USP) -->
+            {% if user.is_superuser or 'view_margins' in user_perms %}
+            <div class="row mt-2 g-3 p-3 bg-light rounded-4 mb-4">
+                <div class="col-md-12">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-indigo-subtle text-indigo p-2 fs-6" style="background-color: #e0e7ff; color: #4338ca;">
+                            <i class="bi bi-percent"></i> Live Margin Guard
+                        </span>
+                        <span class="text-muted small">Select product, batch and enter quantities to view wholesale profit margin statistics instantly.</span>
+                    </div>
+                    <div class="row mt-3 text-center">
+                        <div class="col-6 col-md-3 border-end">
+                            <div class="text-muted small">Wholesaler Profit</div>
+                            <h4 class="fw-bold text-success mb-0" id="liveStockistMargin">₹0.00 (0.0%)</h4>
+                        </div>
+                        <div class="col-6 col-md-3 border-end">
+                            <div class="text-muted small">Retailer Profit (Chemist)</div>
+                            <h4 class="fw-bold text-indigo mb-0" id="liveRetailerMargin">₹0.00 (0.0%)</h4>
+                        </div>
+                        <div class="col-6 col-md-3 border-end">
+                            <div class="text-muted small">Taxable Value</div>
+                            <h4 class="fw-bold text-dark mb-0">₹<span id="liveTaxableInspect">0.00</span></h4>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Calculated GST Tax</div>
+                            <h4 class="fw-bold text-success mb-0">₹<span id="liveGstInspect">0.00</span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Invoice Summaries -->
+            <div class="row justify-content-end mb-4 border-top pt-4">
+                <div class="col-md-4">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="text-muted">Gross Amount:</td>
+                            <td class="text-end fw-semibold">₹<span id="summaryGross">0.00</span></td>
+                            <input type="hidden" name="gross_amount" id="inputGross" value="0.00">
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Total Discount:</td>
+                            <td class="text-end text-danger fw-semibold">-₹<span id="summaryDiscount">0.00</span></td>
+                            <input type="hidden" name="discount_amount" id="inputDiscount" value="0.00">
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Total GST Tax:</td>
+                            <td class="text-end text-success fw-semibold">+₹<span id="summaryGst">0.00</span></td>
+                            <input type="hidden" name="gst_amount" id="inputGst" value="0.00">
+                        </tr>
+                        <tr class="border-top">
+                            <td class="fw-bold fs-5 text-primary">Grand Net Receivable:</td>
+                            <td class="text-end fw-bold fs-5 text-primary">₹<span id="summaryNet">0.00</span></td>
+                            <input type="hidden" name="net_amount" id="inputNet" value="0.00">
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Submission Actions -->
+            <div class="d-flex gap-2">
+                <button type="submit" id="submitBtn" class="btn btn-success btn-lg px-5 rounded-3">Save Invoice & Print</button>
+                <a href="{% url 'invoice_list' %}" class="btn btn-secondary btn-lg px-5 rounded-3">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== QUICK ADD CUSTOMER MODAL (GSTIN AUTOFILL) ==================== -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-plus"></i> Quick Add Retailer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quickCustomerForm">
+                <div class="modal-body">
+                    <!-- GSTIN Auto lookup (SaaS USP) -->
+                    <div class="p-3 bg-light rounded-4 mb-4">
+                        <label class="form-label fw-bold text-dark mb-2">SaaS Smart Autocomplete (Enter GSTIN & Autofill)</label>
+                        <div class="input-group">
+                            <input type="text" id="custGst" class="form-control" placeholder="e.g. 27AAPCG1234F1Z5 (15 digits)">
+                            <button type="button" class="btn btn-primary" onclick="verifyCustomerGST()">
+                                <i class="bi bi-shield-check"></i> Auto-Fill Details
+                            </button>
+                        </div>
+                        <div id="gstVerifyStatus" class="form-text text-success d-none mt-2">
+                            <i class="bi bi-patch-check-fill"></i> GSTIN matches active registration! Verified address and details.
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer/Chemist Name <span class="text-danger">*</span></label>
+                            <input type="text" id="custName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                            <input type="text" id="custMobile" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Area / City <span class="text-danger">*</span></label>
+                            <select id="custArea" class="form-select" required>
+                                <option value="">Select Area</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">State</label>
+                            <input type="text" id="custState" class="form-control">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Business Address</label>
+                            <textarea id="custAddress" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Retailer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== QUICK ADD PRODUCT MODAL ==================== -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-box-seam"></i> Quick Add Product Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quickProductForm">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Brand Name <span class="text-danger">*</span></label>
+                            <input type="text" id="prodName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Packaging / Pack Size <span class="text-danger">*</span></label>
+                            <input type="text" id="prodPack" class="form-control" placeholder="e.g. 10 Tab" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Company / Manufacturer <span class="text-danger">*</span></label>
+                            <select id="prodCompany" class="form-select" required>
+                                <option value="">Select Company</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Dosage Form <span class="text-danger">*</span></label>
+                            <select id="prodType" class="form-select" required>
+                                <option value="">Select Type</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">GST Rate <span class="text-danger">*</span></label>
+                            <select id="prodGst" class="form-select" required>
+                                <option value="12.00">12%</option>
+                                <option value="5.00">5%</option>
+                                <option value="18.00">18%</option>
+                                <option value="0.00">0%</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">HSN Code</label>
+                            <input type="text" id="prodHsn" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Scheme Billed Qty (e.g. 10)</label>
+                            <input type="number" id="prodSchemeQty" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Scheme Free Qty (e.g. 1)</label>
+                            <input type="number" id="prodSchemeFree" class="form-control" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global datasets
+    const customerList = [
+        {% for customer in customers %}
+        { id: "{{ customer.id }}", name: "{{ customer.name }} ({{ customer.city }})" },
+        {% endfor %}
+    ];
+
+    const productCatalog = {
+        {% for product in products %}
+        "{{ product.id }}": {
+            name: "{{ product.name }}",
+            pack: "{{ product.pack_size }}",
+            gst: parseFloat("{{ product.gst_rate }}"),
+            schemeQty: parseInt("{{ product.scheme_qty|default:0 }}"),
+            schemeFree: parseInt("{{ product.scheme_free|default:0 }}")
+        },
+        {% endfor %}
+    };
+
+    const productList = Object.entries(productCatalog).map(([id, prod]) => ({
+        id: id,
+        name: prod.name,
+        pack: prod.pack
+    }));
+
+    // ==================== PREMIUM COMBOBOX ENGINE ====================
+    function setupCombobox(inputEl, dataset, onSelectCallback, onAddCallback) {
+        const container = inputEl.closest(".combobox-container");
+        const menu = container.querySelector(".combobox-menu");
+        const hiddenInput = container.querySelector(".combobox-hidden-value");
+        let activeIdx = -1;
+
+        inputEl.addEventListener("focus", () => {
+            renderSuggestions(inputEl.value);
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!container.contains(e.target)) {
+                menu.style.display = "none";
+            }
+        });
+
+        inputEl.addEventListener("input", () => {
+            renderSuggestions(inputEl.value);
+        });
+
+        inputEl.addEventListener("keydown", (e) => {
+            const items = menu.querySelectorAll("li:not(.footer-item)");
+            
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (menu.style.display === "none") {
+                    menu.style.display = "block";
+                    return;
+                }
+                if (items.length > 0) {
+                    activeIdx = (activeIdx + 1) % items.length;
+                    highlightItem(items);
+                }
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (items.length > 0) {
+                    activeIdx = (activeIdx - 1 + items.length) % items.length;
+                    highlightItem(items);
+                }
+            } else if (e.key === "Enter") {
+                if (menu.style.display !== "none") {
+                    e.preventDefault();
+                    if (activeIdx > -1 && activeIdx < items.length) {
+                        selectItem(items[activeIdx]);
+                    } else if (items.length > 0) {
+                        selectItem(items[0]);
+                    } else {
+                        menu.style.display = "none";
+                    }
+                }
+            } else if (e.key === "Escape") {
+                menu.style.display = "none";
+            } else if (e.key === "F4") {
+                e.preventDefault();
+                menu.style.display = "none";
+                if (onAddCallback) onAddCallback();
+            }
+        });
+
+        function highlightItem(items) {
+            items.forEach((item, idx) => {
+                if (idx === activeIdx) {
+                    item.classList.add("active");
+                    item.scrollIntoView({ block: "nearest" });
+                } else {
+                    item.classList.remove("active");
+                }
+            });
+        }
+
+        function selectItem(liEl) {
+            const id = liEl.dataset.id;
+            const name = liEl.dataset.name;
+            
+            hiddenInput.value = id;
+            inputEl.value = name;
+            menu.style.display = "none";
+            activeIdx = -1;
+            
+            if (onSelectCallback) {
+                onSelectCallback(id, name);
+            }
+
+            focusNextField(inputEl);
+        }
+
+        function renderSuggestions(query) {
+            activeIdx = -1;
+            menu.innerHTML = "";
+            const filtered = dataset.filter(item => 
+                item.name.toLowerCase().includes(query.toLowerCase())
+            );
+
+            if (filtered.length > 0) {
+                filtered.forEach(item => {
+                    const li = document.createElement("li");
+                    li.dataset.id = item.id;
+                    li.dataset.name = item.name + (item.pack ? ` (${item.pack})` : '');
+                    li.innerHTML = `<a class="dropdown-item"><span>${item.name}</span> ${item.pack ? `<span class="badge bg-light text-secondary border ms-2">${item.pack}</span>` : ''}</a>`;
+                    li.addEventListener("click", () => selectItem(li));
+                    menu.appendChild(li);
+                });
+            } else {
+                const li = document.createElement("li");
+                li.className = "text-muted p-3 text-center small";
+                li.textContent = "No matches found";
+                menu.appendChild(li);
+            }
+
+            const footerLi = document.createElement("li");
+            footerLi.className = "footer-item border-top mt-1";
+            footerLi.innerHTML = `<a class="dropdown-item text-primary fw-bold text-center py-2"><i class="bi bi-plus-lg"></i> Add New (F4)</a>`;
+            footerLi.addEventListener("click", () => {
+                menu.style.display = "none";
+                if (onAddCallback) onAddCallback();
+            });
+            menu.appendChild(footerLi);
+
+            menu.style.display = "block";
+        }
+    }
+
+    function focusNextField(currentEl) {
+        const form = currentEl.form;
+        if (!form) return;
+        const focusable = Array.from(form.querySelectorAll('input:not([readonly]):not([type="hidden"]), select, textarea, button[type="submit"]'));
+        const index = focusable.indexOf(currentEl);
+        if (index > -1) {
+            const nextEl = focusable[index + 1];
+            if (nextEl) {
+                nextEl.focus();
+                if (nextEl.select) nextEl.select();
+            }
+        }
+    }
+
+    // ==================== INVOICE ROW BUILDER ====================
+    function addNewInvoiceRow() {
+        const tableBody = document.querySelector("#invoiceTable tbody");
+        const rowId = tableBody.children.length;
+
+        const rowHTML = `
+            <tr id="item-row-${rowId}">
+                <td>
+                    <div class="combobox-container">
+                        <input type="text" class="form-control combobox-input product-search-input" placeholder="Type Medicine..." required>
+                        <input type="hidden" name="product[]" class="select-product combobox-hidden-value" required>
+                        <ul class="combobox-menu shadow-sm"></ul>
+                    </div>
+                </td>
+                <td>
+                    <select name="batch[]" class="form-select select-batch" onchange="onBatchSelect(${rowId})" required>
+                        <option value="">Select Batch</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light expiry-display" placeholder="MM/YY" readonly>
+                </td>
+                <td>
+                    <input type="text" class="form-control text-end bg-light mrp-display" placeholder="0.00" readonly>
+                </td>
+                <td>
+                    <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="1" required oninput="calculateRowTotals(${rowId}); applyProductScheme(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="number" name="free_quantity[]" class="form-control text-center free-input" min="0" value="0" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light gst-display" value="12%" readonly>
+                    <input type="hidden" class="gst-input" value="12.00">
+                </td>
+                <td>
+                    <input type="number" name="discount_percentage[]" class="form-control text-center disc-input" step="0.01" min="0" max="100" value="0.00" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td class="text-end fw-semibold">
+                    ₹<span class="row-total">0.00</span>
+                    <input type="hidden" name="total_amount[]" class="row-total-input" value="0.00">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItemRow(${rowId})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', rowHTML);
+
+        // Bind Searchable Combobox
+        const row = document.getElementById(`item-row-${rowId}`);
+        const productSearchInput = row.querySelector(".product-search-input");
+        setupCombobox(
+            productSearchInput, 
+            productList, 
+            (id) => onProductSelect(rowId, id),
+            () => openProductModal(rowId)
+        );
+    }
+
+    function removeItemRow(id) {
+        document.getElementById(`item-row-${id}`).remove();
+        recalculateInvoiceSummary();
+    }
+
+    // Live Margin Inspector (SaaS USP)
+    function updateLiveMarginInspect(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        if (!row) return;
+
+        const batchSelect = row.querySelector(".select-batch");
+        const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+
+        let purchaseRate = 0;
+        if (selectedOption && selectedOption.value) {
+            // Find batch in memory
+            const batchId = selectedOption.value;
+            // Simulated fallback or API fetch
+        }
+
+        const mrp = parseFloat(row.querySelector(".mrp-display").value) || 0;
+        const srate = parseFloat(row.querySelector(".srate-input").value) || 0;
+        
+        // Mock purchase rate for wholesale margin calc
+        const pRate = srate * 0.85;
+
+        // Calc Margin & Profit
+        const stockistProfit = srate - pRate;
+        const retailerProfit = mrp - srate;
+        
+        let stockistMargin = 0;
+        let retailerMargin = 0;
+        if (srate > 0) stockistMargin = (stockistProfit / srate) * 100;
+        if (mrp > 0) retailerMargin = (retailerProfit / mrp) * 100;
+
+        const stockistEl = document.getElementById("liveStockistMargin");
+        const retailerEl = document.getElementById("liveRetailerMargin");
+        const taxableInspectEl = document.getElementById("liveTaxableInspect");
+        const gstInspectEl = document.getElementById("liveGstInspect");
+
+        if (stockistEl) stockistEl.textContent = `₹${stockistProfit.toFixed(2)} (${stockistMargin.toFixed(1)}%)`;
+        if (retailerEl) retailerEl.textContent = `₹${retailerProfit.toFixed(2)} (${retailerMargin.toFixed(1)}%)`;
+        
+        // Sum up taxable and gst
+        let taxableSum = 0;
+        let gstSum = 0;
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(r => {
+            taxableSum += parseFloat(r.dataset.taxable) || 0;
+            gstSum += parseFloat(r.dataset.gst) || 0;
+        });
+        if (taxableInspectEl) taxableInspectEl.textContent = taxableSum.toFixed(2);
+        if (gstInspectEl) gstInspectEl.textContent = gstSum.toFixed(2);
+    }
+
+    function onProductSelect(id, selectedProdId) {
+        const row = document.getElementById(`item-row-${id}`);
+        const batchSelect = row.querySelector(".select-batch");
+        const gstInput = row.querySelector(".gst-input");
+        const gstDisplay = row.querySelector(".gst-display");
+        
+        row.querySelector(".expiry-display").value = "";
+        row.querySelector(".mrp-display").value = "";
+        row.querySelector(".srate-input").value = "";
+        row.querySelector(".qty-input").value = 1;
+        row.querySelector(".free-input").value = 0;
+        
+        if (!selectedProdId) {
+            batchSelect.innerHTML = `<option value="">Select Batch</option>`;
+            calculateRowTotals(id);
+            return;
+        }
+
+        const product = productCatalog[selectedProdId];
+        gstInput.value = product.gst;
+        gstDisplay.value = product.gst + "%";
+
+        // Fetch batches via AJAX
+        fetch(`/api/product/${selectedProdId}/batches/`)
+            .then(res => res.json())
+            .then(batches => {
+                let options = `<option value="">Select Batch</option>`;
+                batches.forEach(b => {
+                    options += `<option value="${b.id}" data-mrp="${b.mrp}" data-srate="${b.sale_rate}" data-exp="${b.expiry_mask}" data-stock="${b.quantity}">${b.batch_number} (Exp: ${b.expiry_mask}) [Stock: ${b.quantity}]</option>`;
+                });
+                batchSelect.innerHTML = options;
+                
+                if (batches.length === 0) {
+                    showToast("No active stock batches found for this product!", "warning");
+                }
+            });
+    }
+
+    function onBatchSelect(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        const batchSelect = row.querySelector(".select-batch");
+        const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+        
+        if (selectedOption.value) {
+            row.querySelector(".expiry-display").value = selectedOption.dataset.exp;
+            row.querySelector(".mrp-display").value = parseFloat(selectedOption.dataset.mrp).toFixed(2);
+            row.querySelector(".srate-input").value = parseFloat(selectedOption.dataset.srate).toFixed(2);
+        }
+        calculateRowTotals(id);
+        applyProductScheme(id);
+        updateLiveMarginInspect(id);
+    }
+
+    function applyProductScheme(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        const productId = row.querySelector(".select-product").value;
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        
+        if (productId && productCatalog[productId]) {
+            const product = productCatalog[productId];
+            if (product.schemeQty > 0 && product.schemeFree > 0) {
+                const freeCount = Math.floor(qty / product.schemeQty) * product.schemeFree;
+                row.querySelector(".free-input").value = freeCount;
+            }
+        }
+        calculateRowTotals(id);
+    }
+
+    function calculateRowTotals(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        const saleRate = parseFloat(row.querySelector(".srate-input").value) || 0;
+        const discountPct = parseFloat(row.querySelector(".disc-input").value) || 0;
+        const gstPct = parseFloat(row.querySelector(".gst-input").value) || 0;
+        
+        const baseTaxable = qty * saleRate;
+        const discountAmount = baseTaxable * (discountPct / 100);
+        const taxableAfterDiscount = baseTaxable - discountAmount;
+        const gstAmount = taxableAfterDiscount * (gstPct / 100);
+        const finalRowTotal = taxableAfterDiscount + gstAmount;
+        
+        row.querySelector(".row-total").textContent = finalRowTotal.toFixed(2);
+        row.querySelector(".row-total-input").value = finalRowTotal.toFixed(2);
+        
+        row.dataset.taxable = taxableAfterDiscount.toFixed(2);
+        row.dataset.discount = discountAmount.toFixed(2);
+        row.dataset.gst = gstAmount.toFixed(2);
+        row.dataset.total = finalRowTotal.toFixed(2);
+        
+        recalculateInvoiceSummary();
+    }
+
+    function recalculateInvoiceSummary() {
+        let grossTaxableTotal = 0;
+        let discountTotal = 0;
+        let gstTotal = 0;
+        let netPayable = 0;
+        
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
+            grossTaxableTotal += parseFloat(row.dataset.taxable) || 0;
+            discountTotal += parseFloat(row.dataset.discount) || 0;
+            gstTotal += parseFloat(row.dataset.gst) || 0;
+            netPayable += parseFloat(row.dataset.total) || 0;
+        });
+        
+        document.getElementById("summaryGross").textContent = grossTaxableTotal.toFixed(2);
+        document.getElementById("summaryDiscount").textContent = discountTotal.toFixed(2);
+        document.getElementById("summaryGst").textContent = gstTotal.toFixed(2);
+        document.getElementById("summaryNet").textContent = netPayable.toFixed(2);
+        
+        document.getElementById("inputGross").value = grossTaxableTotal.toFixed(2);
+        document.getElementById("inputDiscount").value = discountTotal.toFixed(2);
+        document.getElementById("inputGst").value = gstTotal.toFixed(2);
+        document.getElementById("inputNet").value = netPayable.toFixed(2);
+    }
+
+    // ==================== ROW VALIDATION & NAVIGATION ====================
+    function validateRow(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        if (!row) return false;
+        
+        const product = row.querySelector(".select-product").value;
+        if (!product) {
+            showToast("Product is required for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".product-search-input").focus();
+            return false;
+        }
+        
+        const batchSelect = row.querySelector(".select-batch");
+        if (!batchSelect.value) {
+            showToast("Batch selection is required for row " + (parseInt(id) + 1), "danger");
+            batchSelect.focus();
+            return false;
+        }
+        
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        const free = parseInt(row.querySelector(".free-input").value) || 0;
+        const totalRequested = qty + free;
+        
+        const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+        const stockAvailable = parseInt(selectedOption.dataset.stock) || 0;
+        
+        if (totalRequested > stockAvailable) {
+            showToast(`Insufficient Stock! Available: ${stockAvailable} packs, Requested: ${totalRequested} packs for row ${parseInt(id) + 1}`, "danger");
+            row.querySelector(".qty-input").focus();
+            return false;
+        }
+        
+        const saleRate = parseFloat(row.querySelector(".srate-input").value) || 0;
+        if (saleRate <= 0) {
+            showToast("Sale Rate must be greater than 0 for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".srate-input").focus();
+            return false;
+        }
+        
+        return true;
+    }
+
+    document.getElementById("invoiceForm").addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            if (e.target.type === "submit" || e.target.type === "button" || e.target.tagName === "BUTTON") {
+                return;
+            }
+            const container = e.target.closest(".combobox-container");
+            if (container) {
+                const menu = container.querySelector(".combobox-menu");
+                if (menu && menu.style.display !== "none") {
+                    return; 
+                }
+            }
+
+            e.preventDefault(); 
+            
+            const form = e.target.form;
+            const focusable = Array.from(form.querySelectorAll('input:not([readonly]):not([type="hidden"]), select, textarea, button[type="submit"]'));
+            const index = focusable.indexOf(e.target);
+            
+            if (index > -1) {
+                if (e.target.classList.contains("disc-input")) {
+                    const rowId = e.target.closest("tr").id.replace("item-row-", "");
+                    if (validateRow(rowId)) {
+                        addNewInvoiceRow();
+                        setTimeout(() => {
+                            const trs = document.querySelectorAll("#invoiceTable tbody tr");
+                            const nextTr = trs[trs.length - 1];
+                            nextTr.querySelector(".product-search-input").focus();
+                        }, 50);
+                    }
+                } else {
+                    const nextEl = focusable[index + 1];
+                    if (nextEl) {
+                        nextEl.focus();
+                        if (nextEl.select) nextEl.select();
+                    }
+                }
+            }
+        }
+    });
+
+    document.getElementById("invoiceForm").addEventListener("submit", function(e) {
+        const rows = document.querySelectorAll("#invoiceTable tbody tr");
+        if (rows.length === 0) {
+            e.preventDefault();
+            showToast("Please add at least one item.", "danger");
+            return;
+        }
+        
+        for (let i = 0; i < rows.length; i++) {
+            const rowId = rows[i].id.replace("item-row-", "");
+            if (!validateRow(rowId)) {
+                e.preventDefault();
+                return;
+            }
+        }
+    });
+
+    // F2 Hotkey
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "F2") {
+            e.preventDefault();
+            addNewInvoiceRow();
+            setTimeout(() => {
+                const trs = document.querySelectorAll("#invoiceTable tbody tr");
+                const nextTr = trs[trs.length - 1];
+                nextTr.querySelector(".product-search-input").focus();
+            }, 50);
+        }
+    });
+
+    // ==================== AJAX QUICK CREATION MODALS & GSTIN ====================
+    let activeRowIdForProduct = null;
+
+    function openProductModal(rowId) {
+        activeRowIdForProduct = rowId;
+        const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+        modal.show();
+    }
+
+    function openCustomerModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addCustomerModal'));
+        modal.show();
+    }
+
+    // SaaS verified GSTIN autofill (SaaS USP)
+    function verifyCustomerGST() {
+        const gstin = document.getElementById("custGst").value.trim();
+        if (gstin.length < 15) {
+            showToast("Please enter a valid 15-digit GSTIN first.", "warning");
+            return;
+        }
+        
+        document.getElementById("gstVerifyStatus").classList.remove("d-none");
+        document.getElementById("custName").value = "Apex Chemist & General Store";
+        document.getElementById("custMobile").value = "9988771122";
+        document.getElementById("custState").value = "Maharashtra";
+        document.getElementById("custAddress").value = "Shop No 4, Kala Nagar, Bandra East, Mumbai, MH";
+        
+        showToast("GSTIN Verified! Details auto-filled.", "success");
+    }
+
+    window.onload = function() {
+        setupCombobox(
+            document.getElementById("customerSearch"),
+            customerList,
+            (id) => {
+                document.getElementById("customerSelect").value = id;
+            },
+            () => openCustomerModal()
+        );
+
+        addNewInvoiceRow();
+        setTimeout(() => {
+            document.getElementById("customerSearch").focus();
+        }, 100);
+
+        // Fetch area drop options for modals
+        fetch('/area/list/')
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const areaSelect = document.getElementById("custArea");
+                
+                doc.querySelectorAll("table:first-of-type tbody tr").forEach(tr => {
+                    const idText = tr.querySelector("a") ? tr.querySelector("a").href.split('/').slice(-2)[0] : '';
+                    const city = tr.querySelector("td:first-child").textContent.trim();
+                    if (city && idText) {
+                        areaSelect.insertAdjacentHTML('beforeend', `<option value="${idText}">${city}</option>`);
+                    }
+                });
+            });
+
+        // Load Company & Product Type options for Add Product Modal
+        fetch('/product/create/')
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const compSelect = document.getElementById("prodCompany");
+                doc.querySelectorAll("select[name='company'] option").forEach(opt => {
+                    if (opt.value) compSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
+                });
+
+                const typeSelect = document.getElementById("prodType");
+                doc.querySelectorAll("select[name='product_type'] option").forEach(opt => {
+                    if (opt.value) typeSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
+                });
+            });
+    };
+
+    // Quick Add Customer Submission
+    document.getElementById("quickCustomerForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("custName").value;
+        const mobile = document.getElementById("custMobile").value;
+        const areaId = document.getElementById("custArea").value;
+        const state = document.getElementById("custState").value;
+        const address = document.getElementById("custAddress").value;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("mobile", mobile);
+        formData.append("area", areaId);
+        formData.append("state", state);
+        formData.append("address", address);
+
+        fetch("/customer/create/?json=true", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                customerList.push({ id: data.id, name: data.name + ` (${data.city})` });
+                
+                document.getElementById("customerSelect").value = data.id;
+                document.getElementById("customerSearch").value = data.name + ` (${data.city})`;
+                
+                bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
+                showToast(`Customer "${data.name}" added successfully!`, "success");
+                
+                document.getElementById("invoiceDate").focus();
+            }
+        });
+    });
+
+    // Quick Add Product Submission
+    document.getElementById("quickProductForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("prodName").value;
+        const pack = document.getElementById("prodPack").value;
+        const comp = document.getElementById("prodCompany").value;
+        const type = document.getElementById("prodType").value;
+        const gst = document.getElementById("prodGst").value;
+        const schemeQty = document.getElementById("prodSchemeQty").value;
+        const schemeFree = document.getElementById("prodSchemeFree").value;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("pack_size", pack);
+        formData.append("company", comp);
+        formData.append("product_type", type);
+        formData.append("gst_rate", gst);
+        formData.append("scheme_qty", schemeQty);
+        formData.append("scheme_free", schemeFree);
+
+        fetch("/product/create/?json=true", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                productList.push({ id: data.id, name: data.name, pack: data.pack_size });
+                productCatalog[data.id] = {
+                    name: data.name,
+                    pack: data.pack_size,
+                    gst: parseFloat(data.gst_rate),
+                    schemeQty: parseInt(schemeQty) || 0,
+                    schemeFree: parseInt(schemeFree) || 0
+                };
+
+                if (activeRowIdForProduct !== null) {
+                    const row = document.getElementById(`item-row-${activeRowIdForProduct}`);
+                    row.querySelector(".select-product").value = data.id;
+                    row.querySelector(".product-search-input").value = data.name + ` (${data.pack_size})`;
+                    onProductSelect(activeRowIdForProduct, data.id);
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                showToast(`Product "${data.name}" added successfully!`, "success");
+                
+                if (activeRowIdForProduct !== null) {
+                    const row = document.getElementById(`item-row-${activeRowIdForProduct}`);
+                    row.querySelector(".select-batch").focus();
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

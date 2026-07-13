@@ -1,0 +1,96 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}Area & Subarea Master{% endblock %}
+{% block page_title %}Area & Subarea Master{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+    <!-- Area Master Column -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 text-primary"><i class="bi bi-geo-alt"></i> Areas / Cities ({{ areas.count }})</h5>
+                <a href="{% url 'area_create' %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add Area
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>City / Area Name</th>
+                            <th>Code</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for area in areas %}
+                        <tr>
+                            <td><strong>{{ area.city }}</strong></td>
+                            <td><code class="text-dark">{{ area.code|default:"-" }}</code></td>
+                            <td class="text-center">
+                                <a href="{% url 'area_edit' area.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'area_delete' area.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this area?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">No areas registered.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subarea Master Column -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 text-primary"><i class="bi bi-map"></i> Subareas / Localities ({{ subareas.count }})</h5>
+                <a href="{% url 'subarea_create' %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add Subarea
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Subarea / Locality Name</th>
+                            <th>Parent Area</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in subareas %}
+                        <tr>
+                            <td><strong>{{ sub.name }}</strong></td>
+                            <td><span class="badge bg-light text-dark border">{{ sub.area.city }}</span></td>
+                            <td class="text-center">
+                                <a href="{% url 'subarea_edit' sub.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'subarea_delete' sub.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this subarea?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">No subareas registered.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

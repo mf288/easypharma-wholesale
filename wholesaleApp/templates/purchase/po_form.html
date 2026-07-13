@@ -1,0 +1,157 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">{{ page_title }}</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="poForm">
+            {% csrf_token %}
+            
+            <!-- PO Header Info -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">PO Number <span class="text-danger">*</span></label>
+                    <input type="text" name="po_number" class="form-control" value="{{ auto_po_number }}" required readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                    <select name="supplier" class="form-select" required>
+                        <option value="">Select Supplier</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">PO Date <span class="text-danger">*</span></label>
+                    <input type="date" name="po_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                </div>
+            </div>
+
+            <!-- Items Section -->
+            <div class="border-top pt-4">
+                <h5>Order Items</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle" id="itemsTable">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th style="width: 40%;">Product / Medicine</th>
+                                <th style="width: 20%;">Qty (Packs)</th>
+                                <th style="width: 20%;">Expected Rate (₹)</th>
+                                <th style="width: 15%;">Total (₹)</th>
+                                <th style="width: 5%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic Rows will be appended here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button type="button" class="btn btn-outline-primary mb-4" onclick="addNewRow()">
+                    <i class="bi bi-plus-circle"></i> Add Row
+                </button>
+            </div>
+
+            <!-- Total PO Value Summary -->
+            <div class="row justify-content-end mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-light border-0">
+                        <div class="card-body py-3 px-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 text-muted">Grand Total:</h6>
+                                <h4 class="mb-0 text-primary" id="grandTotal">₹0.00</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-lg px-5">Place Purchase Order</button>
+                <a href="{% url 'po_list' %}" class="btn btn-secondary btn-lg px-5">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Inject active product list as JSON for client-side selection
+    const productsList = [
+        {% for product in products %}
+        { id: "{{ product.id }}", name: "{{ product.name }}", pack: "{{ product.pack_size }}" },
+        {% endfor %}
+    ];
+
+    function addNewRow() {
+        const tableBody = document.querySelector("#itemsTable tbody");
+        const rowId = tableBody.children.length;
+        
+        let productOptions = `<option value="">Select Product</option>`;
+        productsList.forEach(prod => {
+            productOptions += `<option value="${prod.id}">${prod.name} (${prod.pack})</option>`;
+        });
+
+        const newRowHTML = `
+            <tr id="row-${rowId}">
+                <td>
+                    <select name="product[]" class="form-select select-product" required>
+                        ${productOptions}
+                    </select>
+                </td>
+                <td>
+                    <input type="number" name="quantity[]" class="form-control text-center quantity-input" min="1" value="1" required oninput="calculateRow(${rowId})">
+                </td>
+                <td>
+                    <input type="number" name="expected_rate[]" class="form-control text-end rate-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRow(${rowId})">
+                </td>
+                <td class="text-end fw-bold">
+                    ₹<span class="row-total">0.00</span>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteRow(${rowId})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', newRowHTML);
+    }
+
+    function deleteRow(id) {
+        const row = document.getElementById(`row-${id}`);
+        row.remove();
+        calculateGrandTotal();
+    }
+
+    function calculateRow(id) {
+        const row = document.getElementById(`row-${id}`);
+        const qty = parseInt(row.querySelector(".quantity-input").value) || 0;
+        const rate = parseFloat(row.querySelector(".rate-input").value) || 0;
+        
+        const total = qty * rate;
+        row.querySelector(".row-total").textContent = total.toFixed(2);
+        
+        calculateGrandTotal();
+    }
+
+    function calculateGrandTotal() {
+        let total = 0;
+        document.querySelectorAll(".row-total").forEach(span => {
+            total += parseFloat(span.textContent) || 0;
+        });
+        document.getElementById("grandTotal").textContent = "₹" + total.toFixed(2);
+    }
+
+    // Add first row on page load
+    window.onload = function() {
+        addNewRow();
+    };
+</script>
+{% endblock %}

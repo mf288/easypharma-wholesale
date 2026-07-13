@@ -1,0 +1,55 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}Purchase Entries{% endblock %}
+{% block page_title %}Purchase Entries (Supplier Bills){% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>All Recorded Supplier Bills ({{ entries.count }})</h4>
+    <a href="{% url 'purchase_entry_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add Purchase Entry
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Supplier</th>
+                    <th>Invoice Date</th>
+                    <th>Gross Amount</th>
+                    <th>Discount Total</th>
+                    <th>GST Total</th>
+                    <th>Net Amount Payable</th>
+                    <th>Recorded Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td><strong>{{ entry.invoice_number }}</strong></td>
+                    <td>{{ entry.supplier.name }}</td>
+                    <td>{{ entry.invoice_date }}</td>
+                    <td>₹{{ entry.gross_amount|floatformat:2 }}</td>
+                    <td class="text-danger">-₹{{ entry.discount_amount|floatformat:2 }}</td>
+                    <td class="text-success">+₹{{ entry.gst_amount|floatformat:2 }}</td>
+                    <td class="fw-bold text-primary">₹{{ entry.net_amount|floatformat:2 }}</td>
+                    <td>{{ entry.entry_date }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-receipt fs-2 d-block mb-2"></i>
+                        No supplier invoices entered yet. Click "Add Purchase Entry" to receive goods.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from wholesaleApp.models import SupplierMaster
 
-@login_required
+# @login_required
 def supplier_list(request):
     suppliers = SupplierMaster.objects.filter(is_deleted=False)
     context = {
@@ -12,7 +13,7 @@ def supplier_list(request):
     }
     return render(request, 'suppliers/supplier_list.html', context)
 
-@login_required
+# @login_required
 def supplier_create(request):
     if request.method == 'POST':
         supplier = SupplierMaster(
@@ -25,16 +26,25 @@ def supplier_create(request):
             opening_balance=request.POST.get('opening_balance', 0),
             credit_limit=request.POST.get('credit_limit', 0),
             credit_days=request.POST.get('credit_days', 0),
-            created_by=request.user
+            created_by=request.user if request.user.is_authenticated else None
         )
         supplier.save()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('json') == 'true':
+            return JsonResponse({
+                'status': 'success',
+                'id': supplier.id,
+                'name': supplier.name,
+                'mobile': supplier.mobile
+            })
+            
         messages.success(request, 'Supplier created successfully!')
         return redirect('supplier_list')
     
     context = {'page_title': 'Add New Supplier'}
     return render(request, 'suppliers/supplier_form.html', context)
 
-@login_required
+# @login_required
 def supplier_edit(request, pk):
     supplier = get_object_or_404(SupplierMaster, pk=pk, is_deleted=False)
     
@@ -55,7 +65,7 @@ def supplier_edit(request, pk):
     context = {'supplier': supplier, 'page_title': 'Edit Supplier'}
     return render(request, 'suppliers/supplier_form.html', context)
 
-@login_required
+# @login_required
 def supplier_delete(request, pk):
     supplier = get_object_or_404(SupplierMaster, pk=pk)
     supplier.is_deleted = True

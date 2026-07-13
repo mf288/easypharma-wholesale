@@ -70,6 +70,8 @@ class ProductMaster(models.Model):
     hsn_code = models.CharField(max_length=15, blank=True, null=True, verbose_name="HSN Code")
     gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=12.00, verbose_name="GST Rate (%)")
     min_stock = models.IntegerField(default=10, verbose_name="Minimum Stock Level")
+    scheme_qty = models.IntegerField(default=0, verbose_name="Scheme Billed Qty (e.g. 10)")
+    scheme_free = models.IntegerField(default=0, verbose_name="Scheme Free Qty (e.g. 1)")
     
     status = models.BooleanField(default=True, verbose_name="Active")
     is_deleted = models.BooleanField(default=False)

@@ -1,21 +1,21 @@
 from django.urls import path
 from wholesaleApp.views.purchase_views import (
-    purchase_list,
-    purchase_create,
-    purchase_edit,
-    purchase_detail,
-    purchase_delete,
-    batch_stock_list,
+    po_list,
+    po_create,
+    purchase_entry_list,
+    purchase_entry_create,
+    get_product_details
 )
 
 urlpatterns = [
-    # Purchase Entry URLs
-    path('purchase/list/', purchase_list, name='purchase_list'),
-    path('purchase/create/', purchase_create, name='purchase_create'),
-    path('purchase/edit/<int:pk>/', purchase_edit, name='purchase_edit'),
-    path('purchase/view/<int:pk>/', purchase_detail, name='purchase_detail'),
-    path('purchase/delete/<int:pk>/', purchase_delete, name='purchase_delete'),
+    # Purchase Orders
+    path('purchase/order/list/', po_list, name='po_list'),
+    path('purchase/order/create/', po_create, name='po_create'),
 
-    # Batchwise Stock (auto-generated from purchase entries)
-    path('purchase/batch-stock/', batch_stock_list, name='batch_stock_list'),
+    # Purchase Entries
+    path('purchase/entry/list/', purchase_entry_list, name='purchase_entry_list'),
+    path('purchase/entry/create/', purchase_entry_create, name='purchase_entry_create'),
+
+    # API endpoints
+    path('api/product/<int:pk>/details/', get_product_details, name='api_product_details'),
 ]

@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from wholesaleApp.models import CompanyMaster, DrugMaster, ProductTypeMaster, ProductMaster
 
 # ==================== COMPANY MASTER VIEWS ====================
@@ -193,6 +194,8 @@ def product_create(request):
         hsn_code = request.POST.get('hsn_code', '')
         gst_rate = request.POST.get('gst_rate', 12.00)
         min_stock = request.POST.get('min_stock', 10)
+        scheme_qty = request.POST.get('scheme_qty', 0)
+        scheme_free = request.POST.get('scheme_free', 0)
         
         product = ProductMaster(
             name=name,
@@ -203,9 +206,21 @@ def product_create(request):
             hsn_code=hsn_code,
             gst_rate=gst_rate,
             min_stock=min_stock,
+            scheme_qty=scheme_qty if scheme_qty else 0,
+            scheme_free=scheme_free if scheme_free else 0,
             created_by=request.user if request.user.is_authenticated else None
         )
         product.save()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('json') == 'true':
+            return JsonResponse({
+                'status': 'success',
+                'id': product.id,
+                'name': product.name,
+                'pack_size': product.pack_size,
+                'gst_rate': float(product.gst_rate)
+            })
+            
         messages.success(request, 'Product created successfully!')
         return redirect('product_list')
         

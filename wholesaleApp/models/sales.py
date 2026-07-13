@@ -1,0 +1,48 @@
+from django.db import models
+from django.contrib.auth.models import User
+from wholesaleApp.models.customers import CustomerMaster
+from wholesaleApp.models.products import ProductMaster
+from wholesaleApp.models.purchase import ProductBatch
+
+class SalesInvoice(models.Model):
+    invoice_number = models.CharField(max_length=50, unique=True, verbose_name="Invoice Number")
+    customer = models.ForeignKey(CustomerMaster, on_delete=models.PROTECT, related_name='sales_invoices', verbose_name="Customer")
+    invoice_date = models.DateField(verbose_name="Invoice Date")
+    
+    gross_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Gross Amount (₹)")
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Discount (₹)")
+    gst_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="GST Amount (₹)")
+    net_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Net Amount Receivable (₹)")
+    
+    status = models.CharField(
+        max_length=50,
+        choices=(('Pending', 'Pending'), ('Delivered', 'Delivered'), ('Cancelled', 'Cancelled')),
+        default='Pending',
+        verbose_name="Delivery Status"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Sales Invoice"
+        verbose_name_plural = "Sales Invoices"
+        ordering = ['-invoice_date', '-id']
+
+    def __str__(self):
+        return f"{self.invoice_number} - {self.customer.name}"
+
+
+class SalesInvoiceItem(models.Model):
+    sales_invoice = models.ForeignKey(SalesInvoice, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(ProductMaster, on_delete=models.PROTECT, verbose_name="Product")
+    batch = models.ForeignKey(ProductBatch, on_delete=models.PROTECT, verbose_name="Batch")
+    
+    quantity = models.IntegerField(verbose_name="Billed Qty")
+    free_quantity = models.IntegerField(default=0, verbose_name="Free Qty")
+    sale_rate = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Selling Rate (₹)")
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="Discount (%)")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Item Total (₹)")
+
+    def __str__(self):
+        return f"{self.product.name} - Qty: {self.quantity} (Batch: {self.batch.batch_number})"
