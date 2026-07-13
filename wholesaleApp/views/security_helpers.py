@@ -77,3 +77,10 @@ def seed_default_permissions():
                 feature=f,
                 defaults={'is_granted': True}
             )
+
+
+def user_perms_context_processor(request):
+    """Context processor to make user_perms set globally available in all templates."""
+    return {
+        'user_perms': get_user_permissions_context(request.user)
+    }

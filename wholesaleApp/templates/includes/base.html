@@ -92,6 +92,14 @@
             const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
             toast.show();
         }
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            {% if messages %}
+                {% for message in messages %}
+                    showToast("{{ message|escapejs }}", "{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}");
+                {% endfor %}
+            {% endif %}
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>

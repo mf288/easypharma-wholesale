@@ -17,42 +17,59 @@
             </li>
 
             <!-- Masters -->
+            {% if 'area_crud' in user_perms or 'product_crud' in user_perms or 'supplier_crud' in user_perms or 'customer_crud' in user_perms %}
             <li class="nav-item mt-3">
                 <a class="nav-link text-white" data-bs-toggle="collapse" href="#mastersCollapse" role="button">
                     <i class="bi bi-folder-fill me-2"></i> Masters
                 </a>
                 <div class="collapse ms-3" id="mastersCollapse">
                     <ul class="nav flex-column">
+                        {% if 'area_crud' in user_perms %}
                         <li class="nav-item"><a href="{% url 'area_list' %}" class="nav-link text-light">Area Master</a></li>
+                        {% endif %}
+                        {% if 'product_crud' in user_perms %}
                         <li class="nav-item"><a href="{% url 'company_list' %}" class="nav-link text-light">Company Master</a></li>
                         <li class="nav-item"><a href="{% url 'drug_list' %}" class="nav-link text-light">Drug Composition</a></li>
                         <li class="nav-item"><a href="{% url 'type_list' %}" class="nav-link text-light">Product Type / Form</a></li>
+                        {% endif %}
+                        {% if 'supplier_crud' in user_perms %}
                         <li class="nav-item"><a href="{% url 'supplier_list' %}" class="nav-link text-light">Supplier Master</a></li>
+                        {% endif %}
+                        {% if 'customer_crud' in user_perms %}
                         <li class="nav-item"><a href="{% url 'customer_list' %}" class="nav-link text-light">Customer Master</a></li>
+                        {% endif %}
+                        {% if 'product_crud' in user_perms %}
                         <li class="nav-item"><a href="{% url 'product_list' %}" class="nav-link text-light">Product Master</a></li>
+                        {% endif %}
                         <li class="nav-item"><a href="#" class="nav-link text-light">Godown / Rack Master</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Scheme / Discount Master</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Unit / HSN Master</a></li>
                     </ul>
                 </div>
             </li>
+            {% endif %}
 
             <!-- Purchase Transactions -->
+            {% if 'purchase_create' in user_perms or 'purchase_list' in user_perms %}
             <li class="nav-item mt-3">
                 <a class="nav-link text-white" data-bs-toggle="collapse" href="#purchaseCollapse" role="button">
                     <i class="bi bi-bag-fill me-2"></i> Purchase
                 </a>
                 <div class="collapse ms-3" id="purchaseCollapse">
                     <ul class="nav flex-column">
+                        {% if 'purchase_create' in user_perms %}
                         <li class="nav-item"><a href="{% url 'po_list' %}" class="nav-link text-light">Purchase Order</a></li>
                         <li class="nav-item"><a href="{% url 'purchase_entry_list' %}" class="nav-link text-light">Purchase Entry (Bill)</a></li>
+                        {% endif %}
                         <li class="nav-item"><a href="#" class="nav-link text-light">Purchase Return</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Payment to Supplier</a></li>
                     </ul>
                 </div>
             </li>
+            {% endif %}
 
             <!-- Sales Transactions -->
+            {% if 'sales_create' in user_perms or 'sales_reprint' in user_perms %}
             <li class="nav-item mt-3">
                 <a class="nav-link text-white" data-bs-toggle="collapse" href="#salesCollapse" role="button">
                     <i class="bi bi-cart-fill me-2"></i> Sales / Billing
@@ -60,12 +77,15 @@
                 <div class="collapse ms-3" id="salesCollapse">
                     <ul class="nav flex-column">
                         <li class="nav-item"><a href="#" class="nav-link text-light">Sales Order</a></li>
+                        {% if 'sales_reprint' in user_perms %}
                         <li class="nav-item"><a href="{% url 'invoice_list' %}" class="nav-link text-light">Sales Invoice (Bill)</a></li>
+                        {% endif %}
                         <li class="nav-item"><a href="#" class="nav-link text-light">Sales Return</a></li>
                         <li class="nav-item"><a href="#" class="nav-link text-light">Payment Collection</a></li>
                     </ul>
                 </div>
             </li>
+            {% endif %}
 
             <!-- Inventory / Stock -->
             <li class="nav-item mt-3">
@@ -112,6 +132,7 @@
             </li>
 
             <!-- Reports -->
+            {% if 'sales_reprint' in user_perms or 'view_margins' in user_perms or 'customer_crud' in user_perms or 'supplier_crud' in user_perms %}
             <li class="nav-item mt-3">
                 <a class="nav-link text-white" data-bs-toggle="collapse" href="#reportsCollapse" role="button">
                     <i class="bi bi-bar-chart-fill me-2"></i> Reports
@@ -119,13 +140,20 @@
                 <div class="collapse ms-3" id="reportsCollapse">
                     <ul class="nav flex-column">
                         <li class="nav-item"><a href="{% url 'reports_dashboard' %}" class="nav-link text-light">Reports Hub</a></li>
+                        {% if 'sales_reprint' in user_perms %}
                         <li class="nav-item"><a href="{% url 'report_sales' %}" class="nav-link text-light">GST Sales Summary</a></li>
+                        {% endif %}
+                        {% if 'view_margins' in user_perms %}
                         <li class="nav-item"><a href="{% url 'report_stock' %}" class="nav-link text-light">Stock Valuation</a></li>
                         <li class="nav-item"><a href="{% url 'report_expiry' %}" class="nav-link text-light">Pharma Expiry Alerts</a></li>
+                        {% endif %}
+                        {% if 'customer_crud' in user_perms or 'supplier_crud' in user_perms %}
                         <li class="nav-item"><a href="{% url 'report_outstanding' %}" class="nav-link text-light">Outstanding Ledger</a></li>
+                        {% endif %}
                     </ul>
                 </div>
             </li>
+            {% endif %}
 
             <!-- Settings -->
             <li class="nav-item mt-3">
@@ -144,6 +172,12 @@
                 </div>
             </li>
 
+            <!-- Logout Option -->
+            <li class="nav-item mt-4 border-top pt-3 border-secondary-subtle">
+                <a href="{% url 'logout' %}" class="nav-link text-danger fw-bold" style="color: #fca5a5 !important;">
+                    <i class="bi bi-box-arrow-right me-2 text-danger" style="color: #fca5a5 !important;"></i> Logout
+                </a>
+            </li>
         </ul>
     </div>
 </div>
