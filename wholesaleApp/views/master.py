@@ -231,3 +231,34 @@ def user_permission_matrix(request):
         'user_perms': get_user_permissions_context(request.user)
     }
     return render(request, 'master/permission_matrix.html', context)
+
+
+def switch_tenant(request):
+    """View for superuser to switch the active tenant session."""
+    from django.contrib.auth.decorators import login_required
+    from django.contrib import messages
+    from wholesaleApp.models.tenant import Tenant
+    
+    if not request.user.is_authenticated:
+        return redirect('login')
+        
+    if not request.user.is_superuser:
+        messages.error(request, "Access Denied: Only administrators can switch tenants.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        tenant_id = request.POST.get('tenant_id')
+        if tenant_id:
+            try:
+                tenant = Tenant.objects.get(id=tenant_id, is_active=True)
+                request.session['active_tenant_id'] = tenant.id
+                messages.success(request, f"Switched active firm to: {tenant.company_name}")
+            except Tenant.DoesNotExist:
+                messages.error(request, "Selected tenant does not exist or is inactive.")
+        else:
+            # Switch back to 'All Tenants'
+            if 'active_tenant_id' in request.session:
+                del request.session['active_tenant_id']
+            messages.success(request, "Switched to administrator view (All Tenants).")
+            
+    return redirect(request.META.get('HTTP_REFERER', 'home'))

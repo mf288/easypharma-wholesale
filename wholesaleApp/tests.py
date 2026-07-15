@@ -408,5 +408,105 @@ class AuthAndReportsTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+from django.contrib.auth.models import User
+from wholesaleApp.models.tenant import Tenant, set_current_tenant
+
+class MultiTenancyTests(TestCase):
+    def setUp(self):
+        # Clear thread-local tenant to prevent leakage from previous steps
+        set_current_tenant(None)
+        
+        # Create two tenants
+        self.tenant_a = Tenant.objects.create(name="tenant_a", company_name="Company A", is_active=True)
+        self.tenant_b = Tenant.objects.create(name="tenant_b", company_name="Company B", is_active=True)
+        
+        # Create a superuser
+        self.superuser = User.objects.create_superuser(username="admin", password="password")
+        
+        # Create a normal user and associate with Tenant A
+        self.user_a = User.objects.create_user(username="user_a", password="password")
+        self.user_a.profile.tenant = self.tenant_a
+        self.user_a.profile.save()
+
+    def tearDown(self):
+        # Clean up thread-local tenant
+        set_current_tenant(None)
+
+    def test_tenant_creation(self):
+        self.assertEqual(Tenant.objects.count(), 2)
+
+    def test_data_isolation(self):
+        # Set thread local tenant to A
+        set_current_tenant(self.tenant_a)
+        
+        # Create a supplier under Tenant A
+        supplier_a = SupplierMaster.objects.create(
+            name="Supplier A",
+            mobile="9876543210",
+            city="City A",
+            state="State A"
+        )
+        self.assertEqual(SupplierMaster.objects.count(), 1)
+        self.assertEqual(SupplierMaster.objects.first().name, "Supplier A")
+        
+        # Switch thread local tenant to B
+        set_current_tenant(self.tenant_b)
+        self.assertEqual(SupplierMaster.objects.count(), 0) # Should be empty!
+        
+        # Create a supplier under Tenant B
+        supplier_b = SupplierMaster.objects.create(
+            name="Supplier B",
+            mobile="9876543211",
+            city="City B",
+            state="State B"
+        )
+        self.assertEqual(SupplierMaster.objects.count(), 1)
+        self.assertEqual(SupplierMaster.objects.first().name, "Supplier B")
+        
+        # Switch thread local to None (global admin view)
+        set_current_tenant(None)
+        # Should return both suppliers
+        self.assertEqual(SupplierMaster.objects.count(), 2)
+        
+    def test_switch_tenant_view(self):
+        self.client.force_login(self.superuser)
+        
+        # Switch to tenant A
+        response = self.client.post(reverse('switch_tenant'), {'tenant_id': self.tenant_a.id})
+        self.assertEqual(self.client.session['active_tenant_id'], self.tenant_a.id)
+        
+        # Switch back to all
+        response = self.client.post(reverse('switch_tenant'), {'tenant_id': ''})
+        self.assertNotIn('active_tenant_id', self.client.session)
+
+    def test_invoice_print_view(self):
+        # Setup data for sales invoice
+        set_current_tenant(self.tenant_a)
+        area = AreaMaster.objects.create(code="A1", city="Mumbai")
+        cust = CustomerMaster.objects.create(name="Customer A", mobile="1234567890", area=area, city="Mumbai", state="MH")
+        company = CompanyMaster.objects.create(name="Cipla")
+        p_type = ProductTypeMaster.objects.create(name="Tab")
+        prod = ProductMaster.objects.create(name="Crocin", company=company, product_type=p_type, pack_size="10")
+        batch = ProductBatch.objects.create(product=prod, batch_number="B1", expiry_date="2030-01-01", mrp=10, purchase_rate=5, sale_rate=8, quantity=100)
+        
+        invoice = SalesInvoice.objects.create(
+            invoice_number="INV-0001",
+            customer=cust,
+            invoice_date="2026-07-15",
+            gross_amount=80,
+            discount_amount=0,
+            gst_amount=9.6,
+            net_amount=89.6
+        )
+        
+        # Log in and check page response
+        self.client.force_login(self.user_a)
+        response = self.client.get(reverse('invoice_print', args=[invoice.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "INV-0001")
+        self.assertContains(response, "Customer A")
+        self.assertContains(response, "Company A")
+
+
 
 

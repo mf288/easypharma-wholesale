@@ -3,9 +3,10 @@ from django.contrib.auth.models import User
 from wholesaleApp.models.customers import CustomerMaster
 from wholesaleApp.models.products import ProductMaster
 from wholesaleApp.models.purchase import ProductBatch
+from wholesaleApp.models.tenant import TenantModel
 
-class SalesInvoice(models.Model):
-    invoice_number = models.CharField(max_length=50, unique=True, verbose_name="Invoice Number")
+class SalesInvoice(TenantModel):
+    invoice_number = models.CharField(max_length=50, verbose_name="Invoice Number")
     customer = models.ForeignKey(CustomerMaster, on_delete=models.PROTECT, related_name='sales_invoices', verbose_name="Customer")
     invoice_date = models.DateField(verbose_name="Invoice Date")
     
@@ -28,12 +29,13 @@ class SalesInvoice(models.Model):
         verbose_name = "Sales Invoice"
         verbose_name_plural = "Sales Invoices"
         ordering = ['-invoice_date', '-id']
+        unique_together = ('tenant', 'invoice_number')
 
     def __str__(self):
         return f"{self.invoice_number} - {self.customer.name}"
 
 
-class SalesInvoiceItem(models.Model):
+class SalesInvoiceItem(TenantModel):
     sales_invoice = models.ForeignKey(SalesInvoice, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(ProductMaster, on_delete=models.PROTECT, verbose_name="Product")
     batch = models.ForeignKey(ProductBatch, on_delete=models.PROTECT, verbose_name="Batch")

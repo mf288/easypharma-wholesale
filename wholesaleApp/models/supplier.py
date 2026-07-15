@@ -1,11 +1,12 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from wholesaleApp.models.tenant import TenantModel
 
 # ==================== SUPPLIER MASTER ====================
-class SupplierMaster(models.Model):
+class SupplierMaster(TenantModel):
     name = models.CharField(max_length=255, verbose_name="Supplier Name")
-    mobile = models.CharField(max_length=15, unique=True)
+    mobile = models.CharField(max_length=15)
     alternate_mobile = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     gstin = models.CharField(max_length=15, blank=True, null=True)
@@ -33,6 +34,7 @@ class SupplierMaster(models.Model):
         verbose_name = "Supplier Master"
         verbose_name_plural = "Supplier Masters"
         ordering = ['name']
+        unique_together = ('tenant', 'mobile')
 
     def __str__(self):
         return self.name

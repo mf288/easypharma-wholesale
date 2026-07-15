@@ -45,10 +45,12 @@ def invoice_list(request):
         return redirect('home')
         
     invoices = SalesInvoice.objects.all().select_related('customer')
+    print_invoice_id = request.session.pop('print_invoice_id', None)
     context = {
         'invoices': invoices,
         'page_title': 'Sales Invoices (Retail Bills)',
-        'user_perms': get_user_permissions_context(request.user)
+        'user_perms': get_user_permissions_context(request.user),
+        'print_invoice_id': print_invoice_id
     }
     return render(request, 'sale/invoice_list.html', context)
 
@@ -144,6 +146,7 @@ def invoice_create(request):
         customer.save()
         
         messages.success(request, f"Sales Invoice {invoice_number} saved. Stock deducted and customer balance updated.")
+        request.session['print_invoice_id'] = invoice.id
         return redirect('invoice_list')
         
     context = {
@@ -173,3 +176,118 @@ def get_product_last_purchase_rate(request, pk):
             rate = float(last_batch.purchase_rate)
             
     return JsonResponse({'product_id': pk, 'last_purchase_rate': rate})
+
+
+def number_to_words(number):
+    """Simple helper to convert a number to Indian currency format words."""
+    try:
+        number = int(round(number))
+        if number == 0:
+            return "Rupees Zero Only"
+        
+        words = []
+        units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+                 "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+        tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+        
+        def helper(n):
+            if n < 20:
+                return units[n]
+            elif n < 100:
+                return tens[n // 10] + (" " + units[n % 10] if n % 10 != 0 else "")
+            elif n < 1000:
+                return units[n // 100] + " Hundred" + (" and " + helper(n % 100) if n % 100 != 0 else "")
+            
+        # Break into crores, lakhs, thousands, hundreds
+        crore = number // 10000000
+        number %= 10000000
+        lakh = number // 100000
+        number %= 100000
+        thousand = number // 1000
+        number %= 1000
+        
+        if crore:
+            words.append(helper(crore) + " Crore")
+        if lakh:
+            words.append(helper(lakh) + " Lakh")
+        if thousand:
+            words.append(helper(thousand) + " Thousand")
+        if number:
+            words.append(helper(number))
+            
+        return "Rupees " + " ".join(words) + " Only"
+    except Exception:
+        return ""
+
+
+# @login_required
+def invoice_print(request, pk):
+    """View to render the printable invoice styled for A4 half-page (A5 landscape)."""
+    # Fetch invoice, filtering by tenant is handled automatically by the custom TenantManager
+    invoice = get_object_or_404(SalesInvoice, id=pk)
+    items = invoice.items.all().select_related('product', 'batch')
+    
+    # Identify tenant details to print.
+    # Fallback to the invoice's own tenant if request.tenant is None (Admin mode)
+    print_tenant = request.tenant or invoice.tenant
+    
+    # Calculate invoice items breakdown
+    item_details = []
+    total_taxable_value = 0
+    total_gst_calculated = 0
+    
+    for idx, item in enumerate(items, 1):
+        qty = item.quantity
+        rate = item.sale_rate
+        disc_pct = item.discount_percentage
+        gst_pct = item.product.gst_rate
+        
+        base_val = qty * rate
+        disc_val = base_val * (disc_pct / 100)
+        taxable_val = base_val - disc_val
+        gst_val = taxable_val * (gst_pct / 100)
+        
+        total_taxable_value += taxable_val
+        total_gst_calculated += gst_val
+        
+        # Calculate split taxes (CGST and SGST are 50% each of total GST for local sales)
+        cgst_pct = gst_pct / 2
+        sgst_pct = gst_pct / 2
+        cgst_val = gst_val / 2
+        sgst_val = gst_val / 2
+        
+        item_details.append({
+            'idx': idx,
+            'item': item,
+            'product_name': item.product.name,
+            'pack_size': item.product.pack_size,
+            'hsn_code': item.product.hsn_code,
+            'batch_number': item.batch.batch_number,
+            'expiry_mask': item.batch.expiry_date.strftime('%m/%y') if item.batch.expiry_date else '—',
+            'qty': qty,
+            'free_qty': item.free_quantity,
+            'mrp': item.batch.mrp,
+            'rate': rate,
+            'disc_pct': disc_pct,
+            'gst_pct': gst_pct,
+            'cgst_pct': cgst_pct,
+            'sgst_pct': sgst_pct,
+            'cgst_val': cgst_val,
+            'sgst_val': sgst_val,
+            'amount': item.total_amount
+        })
+        
+    net_amount_words = number_to_words(invoice.net_amount)
+    
+    context = {
+        'invoice': invoice,
+        'customer': invoice.customer,
+        'tenant': print_tenant,
+        'item_details': item_details,
+        'total_taxable_value': total_taxable_value,
+        'total_gst_calculated': total_gst_calculated,
+        'cgst_total': total_gst_calculated / 2,
+        'sgst_total': total_gst_calculated / 2,
+        'net_amount_words': net_amount_words
+    }
+    return render(request, 'sale/invoice_print.html', context)

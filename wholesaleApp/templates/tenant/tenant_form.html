@@ -1,0 +1,68 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 rounded-4 max-width-700 mx-auto">
+    <div class="card-header bg-white py-3 border-bottom-0">
+        <h5 class="mb-0 text-primary fw-bold">
+            <i class="bi bi-building-gear"></i> {{ page_title }}
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">Short Tenant Identifier <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" value="{{ tenant.name|default:'' }}" placeholder="e.g. main_shop" required>
+                    <div class="form-text text-muted">A short, unique code name (no spaces).</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">Legal Business Name <span class="text-danger">*</span></label>
+                    <input type="text" name="company_name" class="form-control" value="{{ tenant.company_name|default:'' }}" placeholder="e.g. EasyPharma Wholesale Pvt Ltd" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-muted small fw-bold">Business Address</label>
+                <textarea name="address" class="form-control" rows="3" placeholder="Full physical address">{{ tenant.address|default:'' }}</textarea>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">Phone Number</label>
+                    <input type="text" name="phone" class="form-control" value="{{ tenant.phone|default:'' }}" placeholder="e.g. +91 9999999999">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">Email Address</label>
+                    <input type="email" name="email" class="form-control" value="{{ tenant.email|default:'' }}" placeholder="e.g. contact@yourfirm.com">
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">GSTIN (Tax Registration)</label>
+                    <input type="text" name="gstin" class="form-control font-monospace" value="{{ tenant.gstin|default:'' }}" placeholder="15-digit GSTIN" maxlength="15">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">Drug License Number (DL No)</label>
+                    <input type="text" name="dl_number" class="form-control font-monospace" value="{{ tenant.dl_number|default:'' }}" placeholder="e.g. DL-20-4567/DL-21-4568">
+                </div>
+            </div>
+
+            <div class="mb-4 form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" id="isActiveSwitch" {% if tenant.is_active|default:True %}checked{% endif %}>
+                <label class="form-check-label text-muted small fw-bold" for="isActiveSwitch">Is Active (Tenant is operational)</label>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="submit" class="btn btn-success px-4 rounded-pill">Save Tenant Firm</button>
+                <a href="{% url 'tenant_list' %}" class="btn btn-secondary px-4 rounded-pill">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -2,9 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from wholesaleApp.models.products import ProductMaster
 from wholesaleApp.models.supplier import SupplierMaster
+from wholesaleApp.models.tenant import TenantModel
 
 # ==================== PRODUCT BATCH INVENTORY ====================
-class ProductBatch(models.Model):
+class ProductBatch(TenantModel):
     product = models.ForeignKey(ProductMaster, on_delete=models.CASCADE, related_name='batches', verbose_name="Product")
     batch_number = models.CharField(max_length=100, verbose_name="Batch Number")
     expiry_date = models.DateField(verbose_name="Expiry Date")
@@ -27,14 +28,14 @@ class ProductBatch(models.Model):
 
 
 # ==================== PURCHASE ORDER ====================
-class PurchaseOrder(models.Model):
+class PurchaseOrder(TenantModel):
     STATUS_CHOICES = (
         ('Draft', 'Draft'),
         ('Sent', 'Sent'),
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'),
     )
-    po_number = models.CharField(max_length=50, unique=True, verbose_name="PO Number")
+    po_number = models.CharField(max_length=50, verbose_name="PO Number")
     supplier = models.ForeignKey(SupplierMaster, on_delete=models.PROTECT, related_name='purchase_orders', verbose_name="Supplier")
     po_date = models.DateField(verbose_name="PO Date")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft', verbose_name="Status")
@@ -48,12 +49,13 @@ class PurchaseOrder(models.Model):
         verbose_name = "Purchase Order"
         verbose_name_plural = "Purchase Orders"
         ordering = ['-po_date', '-id']
+        unique_together = ('tenant', 'po_number')
 
     def __str__(self):
         return f"{self.po_number} - {self.supplier.name}"
 
 
-class PurchaseOrderItem(models.Model):
+class PurchaseOrderItem(TenantModel):
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(ProductMaster, on_delete=models.PROTECT, verbose_name="Product")
     quantity = models.IntegerField(verbose_name="Ordered Qty (Packs)")
@@ -69,7 +71,7 @@ class PurchaseOrderItem(models.Model):
 
 
 # ==================== PURCHASE ENTRY ====================
-class PurchaseEntry(models.Model):
+class PurchaseEntry(TenantModel):
     invoice_number = models.CharField(max_length=100, verbose_name="Supplier Invoice No")
     supplier = models.ForeignKey(SupplierMaster, on_delete=models.PROTECT, related_name='purchase_entries', verbose_name="Supplier")
     entry_date = models.DateField(auto_now_add=True, verbose_name="Date Recorded")
@@ -92,7 +94,7 @@ class PurchaseEntry(models.Model):
         return f"Inv: {self.invoice_number} - {self.supplier.name}"
 
 
-class PurchaseEntryItem(models.Model):
+class PurchaseEntryItem(TenantModel):
     purchase_entry = models.ForeignKey(PurchaseEntry, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(ProductMaster, on_delete=models.PROTECT, verbose_name="Product")
     batch_number = models.CharField(max_length=100, verbose_name="Batch Number")

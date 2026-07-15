@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.models import User
 from wholesaleApp.models.permissions import UserProfile
+from wholesaleApp.models.tenant import Tenant
 from wholesaleApp.views.security_helpers import get_user_permissions_context
 
 # ==================== USER MANAGEMENT CRUD ====================
@@ -12,7 +13,7 @@ def user_list(request):
         messages.error(request, "Access Denied: Only Shop Owners can manage users.")
         return redirect('home')
 
-    users = User.objects.filter(is_superuser=False).select_related('profile')
+    users = User.objects.filter(is_superuser=False).select_related('profile__tenant')
     context = {
         'users': users,
         'page_title': 'User Management (Staff & Field Boys)',
@@ -33,6 +34,7 @@ def user_create(request):
         password = request.POST['password']
         role = request.POST.get('role', 'Employee')
         mobile = request.POST.get('mobile', '').strip()
+        tenant_id = request.POST.get('tenant')
 
         if User.objects.filter(username__iexact=username).exists():
             messages.error(request, f"User with username '{username}' already exists.")
@@ -44,13 +46,17 @@ def user_create(request):
             profile, created = UserProfile.objects.get_or_create(user=user)
             profile.role = role
             profile.mobile = mobile
+            if tenant_id:
+                profile.tenant_id = tenant_id
             profile.save()
 
             messages.success(request, f"Employee user '{username}' successfully created!")
             return redirect('user_list')
 
+    tenants = Tenant.objects.filter(is_active=True)
     context = {
         'roles': ['Employee', 'Salesman', 'Delivery Boy'],
+        'tenants': tenants,
         'page_title': 'Add New Staff / Field Operator',
         'user_perms': get_user_permissions_context(request.user)
     }
@@ -71,6 +77,7 @@ def user_edit(request, pk):
         email = request.POST.get('email', '').strip()
         role = request.POST.get('role', 'Employee')
         mobile = request.POST.get('mobile', '').strip()
+        tenant_id = request.POST.get('tenant')
 
         if User.objects.filter(username__iexact=username).exclude(id=pk).exists():
             messages.error(request, f"Username '{username}' is already in use by another user.")
@@ -81,15 +88,21 @@ def user_edit(request, pk):
 
             profile.role = role
             profile.mobile = mobile
+            if tenant_id:
+                profile.tenant_id = tenant_id
+            else:
+                profile.tenant = None
             profile.save()
 
             messages.success(request, f"User '{username}' details updated successfully!")
             return redirect('user_list')
 
+    tenants = Tenant.objects.filter(is_active=True)
     context = {
         'target_user': target_user,
         'profile': profile,
         'roles': ['Employee', 'Salesman', 'Delivery Boy'],
+        'tenants': tenants,
         'page_title': f"Edit Staff: {target_user.username}",
         'user_perms': get_user_permissions_context(request.user)
     }

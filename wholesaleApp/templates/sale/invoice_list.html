@@ -25,6 +25,7 @@
                     <th>GST Tax</th>
                     <th>Net Amount Receivable</th>
                     <th>Operator</th>
+                    <th class="text-center" style="width: 15%;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -38,10 +39,15 @@
                     <td class="text-success">+₹{{ invoice.gst_amount|floatformat:2 }}</td>
                     <td class="fw-bold text-primary">₹{{ invoice.net_amount|floatformat:2 }}</td>
                     <td>{{ invoice.created_by.username|default:"-" }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'invoice_print' invoice.id %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            <i class="bi bi-printer"></i> Print (A4 Half)
+                        </a>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center py-5 text-muted">
+                    <td colspan="9" class="text-center py-5 text-muted">
                         <i class="bi bi-receipt-cutoff fs-2 d-block mb-2"></i>
                         No sales invoices created yet. Click "Create Sales Invoice" to bill retail chemists.
                     </td>
@@ -51,5 +57,13 @@
         </table>
     </div>
 </div>
+
+{% if print_invoice_id %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        window.open("{% url 'invoice_print' print_invoice_id %}", "_blank");
+    });
+</script>
+{% endif %}
 
 {% endblock %}

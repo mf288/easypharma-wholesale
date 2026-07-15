@@ -45,6 +45,8 @@ class UserFeaturePermission(models.Model):
         return f"{self.user.username} - {self.feature.codename}: {self.is_granted}"
 
 
+from wholesaleApp.models.tenant import Tenant
+
 # ==================== USER PROFILE (ROLES) ====================
 class UserProfile(models.Model):
     ROLE_CHOICES = (
@@ -54,6 +56,7 @@ class UserProfile(models.Model):
         ('Delivery Boy', 'Delivery Boy'),
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    tenant = models.ForeignKey(Tenant, on_delete=models.SET_NULL, null=True, blank=True, related_name='user_profiles')
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='Employee')
     mobile = models.CharField(max_length=15, blank=True, null=True)
 

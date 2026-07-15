@@ -1,13 +1,13 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from wholesaleApp.models.tenant import TenantModel
 
 # ==================== AREA MASTER ====================
-class AreaMaster(models.Model):
+class AreaMaster(TenantModel):
     # name = models.CharField(max_length=150, unique=True, verbose_name="Area Name")
-    code = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    code = models.CharField(max_length=20, blank=True, null=True)
     city = models.CharField(max_length=100)
-    
     
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -17,11 +17,12 @@ class AreaMaster(models.Model):
         verbose_name = "Area Master"
         verbose_name_plural = "Area Masters"
         ordering = ['city']
+        unique_together = ('tenant', 'code')
 
     def __str__(self):
         return f"({self.city})"
 
-class SubareaMaster(models.Model):
+class SubareaMaster(TenantModel):
     area = models.ForeignKey(AreaMaster, on_delete=models.CASCADE, related_name='subareas')
     name = models.CharField(max_length=150, verbose_name="Subarea Name")
     is_active = models.BooleanField(default=True)
@@ -37,9 +38,9 @@ class SubareaMaster(models.Model):
         return f"({self.area.city}) - {self.name}"
 
 # ==================== CUSTOMER MASTER ====================
-class CustomerMaster(models.Model):
+class CustomerMaster(TenantModel):
     name = models.CharField(max_length=255, verbose_name="Customer Name")
-    mobile = models.CharField(max_length=15, unique=True)
+    mobile = models.CharField(max_length=15)
     alternate_mobile = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     gstin = models.CharField(max_length=15, blank=True, null=True)
@@ -69,6 +70,7 @@ class CustomerMaster(models.Model):
         verbose_name = "Customer Master"
         verbose_name_plural = "Customer Masters"
         ordering = ['name']
+        unique_together = ('tenant', 'mobile')
 
     def __str__(self):
         return self.name

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAX INVOICE - {{ invoice.invoice_number }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        /* General styling for browser view */
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11px;
+            color: #212529;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .invoice-card {
+            background: #fff;
+            max-width: 210mm; /* A5 Landscape width is 210mm */
+            min-height: 148mm; /* A5 Landscape height is 148mm */
+            margin: 0 auto;
+            padding: 10mm;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .table-invoice {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        
+        .table-invoice th {
+            background-color: #f1f3f5 !important;
+            color: #000;
+            border: 1px solid #bfbfbf;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 9px;
+            padding: 4px 6px;
+        }
+        
+        .table-invoice td {
+            border: 1px solid #dee2e6;
+            padding: 4px 6px;
+            font-size: 9.5px;
+        }
+
+        .border-double {
+            border-top: 3px double #000 !important;
+            border-bottom: 3px double #000 !important;
+        }
+
+        .legal-text {
+            font-size: 8px;
+            line-height: 1.2;
+            color: #495057;
+        }
+
+        .signature-box {
+            border-top: 1px solid #000;
+            margin-top: 25px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9px;
+            padding-top: 3px;
+        }
+
+        /* Print-specific layout styling */
+        @media print {
+            @page {
+                size: A5 landscape;
+                margin: 4mm;
+            }
+            body {
+                background: #fff;
+                padding: 0;
+                margin: 0;
+            }
+            .invoice-card {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                min-height: auto;
+                border-radius: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .table-invoice th {
+                background-color: #e9ecef !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Toolbar (Hidden on print) -->
+<div class="container max-width-210mm no-print mb-4 d-flex justify-content-between">
+    <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="bi bi-arrow-left"></i> Back to Invoice List
+    </a>
+    <button class="btn btn-primary btn-sm rounded-pill px-4" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print Invoice
+    </button>
+</div>
+
+<!-- Invoice Printable Area -->
+<div class="invoice-card d-flex flex-column justify-content-between">
+    <div>
+        <!-- INVOICE HEADER -->
+        <div class="row align-items-start border-bottom pb-2 mb-2">
+            <!-- Seller Firm Details -->
+            <div class="col-8">
+                <h4 class="text-primary fw-bold mb-1" style="font-size: 16px; letter-spacing: -0.5px;">{{ tenant.company_name }}</h4>
+                <div class="lh-sm text-dark">
+                    {{ tenant.address|default:"" }}<br>
+                    {% if tenant.phone %}<i class="bi bi-telephone"></i> {{ tenant.phone }}{% endif %}
+                    {% if tenant.email %} | <i class="bi bi-envelope"></i> {{ tenant.email }}{% endif %}
+                </div>
+                <div class="mt-1 d-flex gap-3">
+                    {% if tenant.gstin %}<div><strong>GSTIN:</strong> <span class="font-monospace fw-semibold">{{ tenant.gstin }}</span></div>{% endif %}
+                    {% if tenant.dl_number %}<div><strong>DL No:</strong> <span class="font-monospace fw-semibold">{{ tenant.dl_number }}</span></div>{% endif %}
+                </div>
+            </div>
+            
+            <!-- Invoice Meta Info -->
+            <div class="col-4 text-end">
+                <span class="badge bg-danger text-uppercase fw-bold px-3 py-1.5 mb-2" style="font-size: 10px; letter-spacing: 0.5px;">Tax Invoice</span>
+                <div class="small">
+                    <strong>Invoice No:</strong> <span class="font-monospace fw-bold">{{ invoice.invoice_number }}</span><br>
+                    <strong>Date:</strong> {{ invoice.invoice_date|date:"d-m-Y" }}<br>
+                    <strong>Payment status:</strong> <span class="fw-bold">{{ invoice.status }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BUYER & BILL DETAILS -->
+        <div class="row mb-2 bg-light p-2 rounded mx-0 border" style="font-size: 10px;">
+            <div class="col-6 border-end">
+                <span class="text-uppercase text-muted fw-bold" style="font-size: 8px; display: block; margin-bottom: 2px;">Billed To (Chemist / Hospital)</span>
+                <strong class="text-dark" style="font-size: 11px;">{{ customer.name }}</strong>
+                <div class="text-dark mt-1">
+                    {{ customer.address|default:"" }}, {{ customer.city }}, {{ customer.state }} - {{ customer.pincode }}
+                </div>
+            </div>
+            <div class="col-6 ps-3">
+                <span class="text-uppercase text-muted fw-bold" style="font-size: 8px; display: block; margin-bottom: 2px;">Registration / Contact Details</span>
+                <table class="table table-sm table-borderless mb-0 lh-sm" style="font-size: 9.5px;">
+                    <tr>
+                        <td class="p-0 text-muted" style="width: 30%;">Mobile:</td>
+                        <td class="p-0 fw-semibold">{{ customer.mobile }}</td>
+                    </tr>
+                    {% if customer.gstin %}
+                    <tr>
+                        <td class="p-0 text-muted">GSTIN:</td>
+                        <td class="p-0 fw-semibold font-monospace text-uppercase">{{ customer.gstin }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if customer.dl_number_1 or customer.dl_number_2 %}
+                    <tr>
+                        <td class="p-0 text-muted">DL Numbers:</td>
+                        <td class="p-0 font-monospace">
+                            {{ customer.dl_number_1|default:"" }}{% if customer.dl_number_2 %}, {{ customer.dl_number_2 }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- ITEMS TABLE -->
+        <table class="table-invoice text-center">
+            <thead>
+                <tr>
+                    <th style="width: 4%;">#</th>
+                    <th class="text-start" style="width: 25%;">Product Name (Brand)</th>
+                    <th style="width: 7%;">Pack</th>
+                    <th style="width: 9%;">HSN</th>
+                    <th style="width: 10%;">Batch No</th>
+                    <th style="width: 8%;">Expiry</th>
+                    <th style="width: 6%;">Qty</th>
+                    <th style="width: 5%;">Free</th>
+                    <th style="width: 7%;">MRP (₹)</th>
+                    <th style="width: 8%;">Rate (₹)</th>
+                    <th style="width: 5%;">Disc %</th>
+                    <th style="width: 6%;">GST %</th>
+                    <th class="text-end" style="width: 10%;">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for det in item_details %}
+                    <tr>
+                        <td>{{ det.idx }}</td>
+                        <td class="text-start"><strong>{{ det.product_name }}</strong></td>
+                        <td>{{ det.pack_size }}</td>
+                        <td class="font-monospace small">{{ det.hsn_code|default:"—" }}</td>
+                        <td class="font-monospace fw-semibold">{{ det.batch_number }}</td>
+                        <td class="font-monospace">{{ det.expiry_mask }}</td>
+                        <td>{{ det.qty }}</td>
+                        <td>{{ det.free_qty|default:"—" }}</td>
+                        <td class="text-end">₹{{ det.mrp|floatformat:2 }}</td>
+                        <td class="text-end">₹{{ det.rate|floatformat:2 }}</td>
+                        <td class="text-danger">{{ det.disc_pct|floatformat:1 }}%</td>
+                        <td>{{ det.gst_pct|floatformat:0 }}%</td>
+                        <td class="text-end fw-semibold">₹{{ det.amount|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- INVOICE FOOTER (CALCULATIONS & LEGAL SUMMARY) -->
+    <div>
+        <div class="row align-items-end mt-2">
+            <!-- Left Side: Terms, Word Amount & Tax Splits -->
+            <div class="col-8">
+                <!-- Tax breakdown details table -->
+                <div class="bg-light p-1.5 rounded border mb-2">
+                    <table class="w-100 text-center" style="font-size: 8.5px; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <th class="text-start p-0 bg-transparent" style="font-weight: bold; border:none;">GST Split Summary</th>
+                                <th class="p-0 bg-transparent" style="font-weight: bold; border:none;">Taxable Value</th>
+                                <th class="p-0 bg-transparent" style="font-weight: bold; border:none;">CGST Amt (50%)</th>
+                                <th class="p-0 bg-transparent" style="font-weight: bold; border:none;">SGST Amt (50%)</th>
+                                <th class="p-0 bg-transparent" style="font-weight: bold; border:none;">Total GST Tax</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-start p-0 fw-semibold">Intrastate CGST + SGST (Local Sale)</td>
+                                <td class="p-0">₹{{ total_taxable_value|floatformat:2 }}</td>
+                                <td class="p-0">₹{{ cgst_total|floatformat:2 }}</td>
+                                <td class="p-0">₹{{ sgst_total|floatformat:2 }}</td>
+                                <td class="p-0 fw-bold text-success">₹{{ total_gst_calculated|floatformat:2 }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="small fw-semibold text-dark mb-1">
+                    Amount in Words: <span class="text-primary text-capitalize font-monospace" style="font-size: 10px;">{{ net_amount_words }}</span>
+                </div>
+                
+                <div class="legal-text">
+                    <strong>Terms & Conditions:</strong><br>
+                    1. Goods once sold will not be returned or exchanged under any circumstances.<br>
+                    2. Dispute, if any, will be subject to local jurisdiction only.
+                </div>
+            </div>
+
+            <!-- Right Side: Calculations summary & Signature -->
+            <div class="col-4">
+                <table class="w-100 border-double font-monospace" style="font-size: 10px; line-height: 1.4;">
+                    <tr>
+                        <td class="text-muted py-1">Taxable Amt:</td>
+                        <td class="text-end fw-semibold py-1">₹{{ total_taxable_value|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Total Tax (GST):</td>
+                        <td class="text-end text-success fw-semibold">₹{{ total_gst_calculated|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="fw-bold border-top" style="font-size: 12px;">
+                        <td class="py-1.5 text-primary">GRAND TOTAL:</td>
+                        <td class="text-end text-primary py-1.5">₹{{ invoice.net_amount|floatformat:2 }}</td>
+                    </tr>
+                </table>
+                
+                <div class="signature-box mt-3">
+                    For {{ tenant.company_name }}<br>
+                    <div style="height: 35px;"></div>
+                    <span class="small text-muted fw-normal">(Authorized Signatory)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Automatically trigger print dialog on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        // Simple delay to ensure rendering completes
+        setTimeout(() => {
+            window.print();
+        }, 300);
+    });
+</script>
+</body>
+</html>

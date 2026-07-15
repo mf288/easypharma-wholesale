@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from wholesaleApp.models.permissions import AppGroupModule, AppFeature, UserFeaturePermission
+from wholesaleApp.models.tenant import Tenant
 
 def has_feature_access(user, codename):
     """Check if the user is granted access to a specific feature codename."""
@@ -30,8 +31,26 @@ def get_user_permissions_context(user):
         ).select_related('feature')
     }
 
+def seed_default_tenant():
+    """Ensure at least one default tenant exists."""
+    default_tenant, created = Tenant.objects.get_or_create(
+        name="Default Tenant",
+        defaults={
+            "company_name": "EasyPharma Wholesale Default",
+            "address": "123 Main Street, Central City",
+            "phone": "9876543210",
+            "email": "info@easypharma.com",
+            "gstin": "27AAPCG1234F1Z5",
+            "dl_number": "DL-12345/20A/21B"
+        }
+    )
+    return default_tenant
+
 def seed_default_permissions():
     """Seed the database with default Modules and Features if they don't exist."""
+    # First ensure default tenant exists
+    default_tenant = seed_default_tenant()
+
     DEFAULT_PERMISSIONS = {
         'Sales & Billing': [
             ('sales_create', 'New Sale Bill'),
@@ -60,13 +79,32 @@ def seed_default_permissions():
                 defaults={'module': module, 'name': name, 'is_active': True}
             )
 
-    # Ensure UserProfile exists for all users
+    # Ensure UserProfile exists for all users and has a tenant
     from wholesaleApp.models.permissions import UserProfile
     for user in User.objects.all():
         profile, created = UserProfile.objects.get_or_create(user=user)
+        if not profile.tenant:
+            profile.tenant = default_tenant
         if user.is_superuser and profile.role != 'Owner':
             profile.role = 'Owner'
-            profile.save()
+        profile.save()
+
+    # Assign all legacy/existing business objects without a tenant to the default tenant
+    from wholesaleApp.models.customers import AreaMaster, SubareaMaster, CustomerMaster
+    from wholesaleApp.models.supplier import SupplierMaster
+    from wholesaleApp.models.products import CompanyMaster, DrugMaster, ProductTypeMaster, ProductMaster
+    from wholesaleApp.models.purchase import ProductBatch, PurchaseOrder, PurchaseOrderItem, PurchaseEntry, PurchaseEntryItem
+    from wholesaleApp.models.sales import SalesInvoice, SalesInvoiceItem
+
+    models_to_update = [
+        AreaMaster, SubareaMaster, CustomerMaster, SupplierMaster,
+        CompanyMaster, DrugMaster, ProductTypeMaster, ProductMaster,
+        ProductBatch, PurchaseOrder, PurchaseOrderItem, PurchaseEntry,
+        PurchaseEntryItem, SalesInvoice, SalesInvoiceItem
+    ]
+    for model in models_to_update:
+        if hasattr(model, 'unfiltered_objects'):
+            model.unfiltered_objects.filter(tenant__isnull=True).update(tenant=default_tenant)
 
     # For superusers/owners, auto-grant all permissions
     all_features = AppFeature.objects.all()
@@ -84,3 +122,13 @@ def user_perms_context_processor(request):
     return {
         'user_perms': get_user_permissions_context(request.user)
     }
+
+def tenant_context_processor(request):
+    """Context processor to make tenant info globally available in templates."""
+    context = {
+        'current_tenant': getattr(request, 'tenant', None),
+        'tenants_list': [],
+    }
+    if request.user.is_authenticated and request.user.is_superuser:
+        context['tenants_list'] = Tenant.objects.filter(is_active=True)
+    return context

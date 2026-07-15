@@ -1,9 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
+from wholesaleApp.models.tenant import TenantModel
 
 # ==================== COMPANY MASTER ====================
-class CompanyMaster(models.Model):
-    name = models.CharField(max_length=255, unique=True, verbose_name="Company Name")
+class CompanyMaster(TenantModel):
+    name = models.CharField(max_length=255, verbose_name="Company Name")
     code = models.CharField(max_length=50, blank=True, null=True, verbose_name="Company Code")
     status = models.BooleanField(default=True, verbose_name="Active")
     is_deleted = models.BooleanField(default=False)
@@ -16,14 +17,15 @@ class CompanyMaster(models.Model):
         verbose_name = "Company Master"
         verbose_name_plural = "Company Masters"
         ordering = ['name']
+        unique_together = ('tenant', 'name')
 
     def __str__(self):
         return self.name
 
 
 # ==================== DRUG MASTER (GENERIC COMPOSITION) ====================
-class DrugMaster(models.Model):
-    name = models.CharField(max_length=255, unique=True, verbose_name="Generic Composition")
+class DrugMaster(TenantModel):
+    name = models.CharField(max_length=255, verbose_name="Generic Composition")
     status = models.BooleanField(default=True, verbose_name="Active")
     is_deleted = models.BooleanField(default=False)
     
@@ -35,14 +37,15 @@ class DrugMaster(models.Model):
         verbose_name = "Drug Master"
         verbose_name_plural = "Drug Masters"
         ordering = ['name']
+        unique_together = ('tenant', 'name')
 
     def __str__(self):
         return self.name
 
 
 # ==================== PRODUCT TYPE MASTER ====================
-class ProductTypeMaster(models.Model):
-    name = models.CharField(max_length=100, unique=True, verbose_name="Product Type / Form")
+class ProductTypeMaster(TenantModel):
+    name = models.CharField(max_length=100, verbose_name="Product Type / Form")
     status = models.BooleanField(default=True, verbose_name="Active")
     is_deleted = models.BooleanField(default=False)
     
@@ -54,13 +57,14 @@ class ProductTypeMaster(models.Model):
         verbose_name = "Product Type Master"
         verbose_name_plural = "Product Type Masters"
         ordering = ['name']
+        unique_together = ('tenant', 'name')
 
     def __str__(self):
         return self.name
 
 
 # ==================== PRODUCT MASTER (ITEM MASTER) ====================
-class ProductMaster(models.Model):
+class ProductMaster(TenantModel):
     name = models.CharField(max_length=255, verbose_name="Brand Name")
     company = models.ForeignKey(CompanyMaster, on_delete=models.PROTECT, related_name='products', verbose_name="Company")
     drug_composition = models.ForeignKey(DrugMaster, on_delete=models.PROTECT, related_name='products', blank=True, null=True, verbose_name="Drug Composition")
