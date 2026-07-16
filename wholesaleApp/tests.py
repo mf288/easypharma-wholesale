@@ -377,6 +377,10 @@ class AuthAndReportsTests(TestCase):
         # Seed permissions
         from wholesaleApp.views.security_helpers import seed_default_permissions
         seed_default_permissions()
+        
+        from wholesaleApp.models import AppFeature, UserFeaturePermission
+        feature_out = AppFeature.objects.get(codename="report_outstanding")
+        UserFeaturePermission.objects.create(user=self.user, feature=feature_out, is_granted=True)
 
     def test_login_page_renders(self):
         response = self.client.get(reverse('login'))
@@ -506,6 +510,764 @@ class MultiTenancyTests(TestCase):
         self.assertContains(response, "INV-0001")
         self.assertContains(response, "Customer A")
         self.assertContains(response, "Company A")
+
+
+from decimal import Decimal
+
+
+class InvoiceCrudAndWholesalePricingTests(TestCase):
+    def setUp(self):
+        # Clear current tenant context
+        set_current_tenant(None)
+        
+        # Setup tenant
+        self.tenant = Tenant.objects.create(name="main_shop", company_name="Main Shop Pharmacy", is_active=True)
+        set_current_tenant(self.tenant)
+        
+        # Setup master data
+        self.area = AreaMaster.objects.create(code="B1", city="Mumbai")
+        
+        # Setup a Retailer customer and a Wholesaler customer
+        self.retailer = CustomerMaster.objects.create(
+            name="Retail Chemist",
+            mobile="9876543200",
+            area=self.area,
+            city="Mumbai",
+            state="MH",
+            customer_type="Retailer"
+        )
+        self.wholesaler = CustomerMaster.objects.create(
+            name="Wholesale Distributor",
+            mobile="9876543201",
+            area=self.area,
+            city="Mumbai",
+            state="MH",
+            customer_type="Wholesaler"
+        )
+        
+        self.company = CompanyMaster.objects.create(name="Cipla")
+        self.p_type = ProductTypeMaster.objects.create(name="Tab")
+        self.product = ProductMaster.objects.create(name="Crocin 650mg", company=self.company, product_type=self.p_type, pack_size="10")
+        
+        # Setup a batch with different rates
+        self.batch = ProductBatch.objects.create(
+            product=self.product,
+            batch_number="B123",
+            expiry_date="2030-01-01",
+            mrp=100.00,
+            purchase_rate=70.00,
+            sale_rate=90.00,
+            wholesale_rate=80.00,
+            quantity=100
+        )
+        
+        # Setup user
+        self.user = User.objects.create_superuser(username="operator", password="password")
+        self.user.profile.tenant = self.tenant
+        self.user.profile.save()
+
+    def tearDown(self):
+        set_current_tenant(None)
+
+    def test_invoice_create_uses_wholesaler_rate_view(self):
+        # Log in
+        self.client.force_login(self.user)
+        
+        # Test creation of invoice for Wholesaler
+        post_data = {
+            'customer': self.wholesaler.id,
+            'invoice_date': '2026-07-15',
+            'gross_amount': '80.00',
+            'discount_amount': '0.00',
+            'gst_amount': '9.60',
+            'net_amount': '89.60',
+            'product[]': [self.product.id],
+            'batch[]': [self.batch.id],
+            'sale_rate[]': ['80.00'], # Wholesale rate used here
+            'quantity[]': ['1'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['89.60']
+        }
+        response = self.client.post(reverse('invoice_create'), post_data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify invoice created and uses wholesale rate
+        invoice = SalesInvoice.objects.get(customer=self.wholesaler)
+        self.assertEqual(float(invoice.net_amount), 89.60)
+        item = invoice.items.first()
+        self.assertEqual(float(item.sale_rate), 80.00) # Wholesale rate saved!
+        
+        # Stock should be deducted
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.quantity, 99)
+        
+        # Customer balance should be updated
+        self.wholesaler.refresh_from_db()
+        self.assertEqual(float(self.wholesaler.opening_balance), 89.60)
+
+    def test_invoice_edit_view(self):
+        self.client.force_login(self.user)
+        
+        # Create a base invoice first
+        invoice = SalesInvoice.objects.create(
+            customer=self.retailer,
+            invoice_date="2026-07-15",
+            gross_amount=90,
+            discount_amount=0,
+            gst_amount=10.8,
+            net_amount=100.8
+        )
+        item = SalesInvoiceItem.objects.create(
+            sales_invoice=invoice,
+            product=self.product,
+            batch=self.batch,
+            quantity=2,
+            free_quantity=0,
+            sale_rate=45.00,
+            total_amount=100.80
+        )
+        self.batch.quantity -= 2
+        self.batch.save()
+        self.retailer.opening_balance = Decimal('100.80')
+        self.retailer.save()
+        
+        # Verify starting state
+        self.assertEqual(self.batch.quantity, 98)
+        self.assertEqual(float(self.retailer.opening_balance), 100.80)
+        
+        # Perform edit via POST (updating quantity from 2 to 5)
+        post_data = {
+            'customer': self.retailer.id,
+            'invoice_date': '2026-07-15',
+            'gross_amount': '225.00',
+            'discount_amount': '0.00',
+            'gst_amount': '27.00',
+            'net_amount': '252.00',
+            'product[]': [self.product.id],
+            'batch[]': [self.batch.id],
+            'sale_rate[]': ['45.00'],
+            'quantity[]': ['5'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['252.00']
+        }
+        response = self.client.post(reverse('invoice_edit', args=[invoice.id]), post_data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify invoice items updated
+        invoice.refresh_from_db()
+        self.assertEqual(float(invoice.net_amount), 252.00)
+        self.assertEqual(invoice.items.count(), 1)
+        self.assertEqual(invoice.items.first().quantity, 5)
+        
+        # Verify stock correctly adjusted (100 starting - 5 = 95)
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.quantity, 95)
+        
+        # Verify customer balance correctly adjusted (originally 0 + 252 = 252)
+        self.retailer.refresh_from_db()
+        self.assertEqual(float(self.retailer.opening_balance), 252.00)
+
+    def test_invoice_delete_view(self):
+        self.client.force_login(self.user)
+        
+        # Create an invoice
+        invoice = SalesInvoice.objects.create(
+            customer=self.retailer,
+            invoice_date="2026-07-15",
+            gross_amount=90,
+            discount_amount=0,
+            gst_amount=10.8,
+            net_amount=100.8
+        )
+        item = SalesInvoiceItem.objects.create(
+            sales_invoice=invoice,
+            product=self.product,
+            batch=self.batch,
+            quantity=5,
+            free_quantity=1,
+            sale_rate=18.00,
+            total_amount=100.80
+        )
+        self.batch.quantity -= 6 # qty + free_qty
+        self.batch.save()
+        self.retailer.opening_balance = Decimal('100.80')
+        self.retailer.save()
+        
+        self.assertEqual(self.batch.quantity, 94)
+        
+        # Delete invoice
+        response = self.client.post(reverse('invoice_delete', args=[invoice.id]))
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify invoice deleted from database
+        self.assertFalse(SalesInvoice.objects.filter(id=invoice.id).exists())
+        
+        # Verify stock fully restored (94 + 6 = 100)
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.quantity, 100)
+        
+        # Verify customer balance fully reverted
+        self.retailer.refresh_from_db()
+        self.assertEqual(float(self.retailer.opening_balance), 0.00)
+
+
+class PurchaseEntryCrudTests(TestCase):
+    def setUp(self):
+        set_current_tenant(None)
+        
+        # Setup tenant
+        self.tenant = Tenant.objects.create(name="main_shop", company_name="Main Shop Pharmacy", is_active=True)
+        set_current_tenant(self.tenant)
+        
+        # Setup supplier
+        self.supplier = SupplierMaster.objects.create(
+            name="Supplier X",
+            mobile="9876543200",
+            city="Mumbai",
+            state="MH"
+        )
+        
+        self.company = CompanyMaster.objects.create(name="Cipla")
+        self.p_type = ProductTypeMaster.objects.create(name="Tab")
+        self.product = ProductMaster.objects.create(name="Dolo 650mg", company=self.company, product_type=self.p_type, pack_size="15")
+        
+        # Setup superuser operator
+        self.user = User.objects.create_superuser(username="operator2", password="password")
+        self.user.profile.tenant = self.tenant
+        self.user.profile.save()
+
+    def tearDown(self):
+        set_current_tenant(None)
+
+    def test_purchase_entry_create_cash_vs_credit(self):
+        self.client.force_login(self.user)
+        
+        # 1. Cash Purchase
+        post_data_cash = {
+            'supplier': self.supplier.id,
+            'invoice_number': 'INV-CASH-001',
+            'invoice_date': '2026-07-15',
+            'payment_type': 'Cash',
+            'gross_amount': '100.00',
+            'discount_amount': '0.00',
+            'gst_amount': '12.00',
+            'net_amount': '112.00',
+            'product[]': [self.product.id],
+            'batch_number[]': ['B-CASH'],
+            'expiry_date[]': ['2030-01-31'],
+            'mrp[]': ['150.00'],
+            'purchase_rate[]': ['100.00'],
+            'sale_rate[]': ['120.00'],
+            'wholesale_rate[]': [''], # wholesale_rate empty should be accepted
+            'quantity[]': ['1'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['112.00']
+        }
+        
+        response = self.client.post(reverse('purchase_entry_create'), post_data_cash)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify supplier balance is NOT updated for Cash
+        self.supplier.refresh_from_db()
+        self.assertEqual(float(self.supplier.opening_balance), 0.00)
+        
+        # Verify batch created with 1 stock
+        batch = ProductBatch.objects.get(batch_number='B-CASH')
+        self.assertEqual(batch.quantity, 1)
+        self.assertEqual(float(batch.wholesale_rate), 0.00) # Optional defaulted to 0
+        
+        # 2. Credit Purchase
+        post_data_credit = {
+            'supplier': self.supplier.id,
+            'invoice_number': 'INV-CREDIT-002',
+            'invoice_date': '2026-07-15',
+            'payment_type': 'Credit',
+            'gross_amount': '200.00',
+            'discount_amount': '10.00', # bill discount
+            'gst_amount': '24.00',
+            'net_amount': '214.00',
+            'product[]': [self.product.id],
+            'batch_number[]': ['B-CREDIT'],
+            'expiry_date[]': ['2030-01-31'],
+            'mrp[]': ['150.00'],
+            'purchase_rate[]': ['100.00'],
+            'sale_rate[]': ['120.00'],
+            'wholesale_rate[]': ['110.00'],
+            'quantity[]': ['2'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['224.00']
+        }
+        response = self.client.post(reverse('purchase_entry_create'), post_data_credit)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify supplier balance is updated for Credit
+        self.supplier.refresh_from_db()
+        self.assertEqual(float(self.supplier.opening_balance), 214.00)
+        
+        # Verify batch created with 2 stock
+        batch2 = ProductBatch.objects.get(batch_number='B-CREDIT')
+        self.assertEqual(batch2.quantity, 2)
+        self.assertEqual(float(batch2.wholesale_rate), 110.00)
+
+    def test_purchase_entry_edit_and_delete(self):
+        self.client.force_login(self.user)
+        
+        # Create a base Credit entry manually
+        entry = PurchaseEntry.objects.create(
+            supplier=self.supplier,
+            invoice_number='INV-EDIT-TEST',
+            invoice_date='2026-07-15',
+            payment_type='Credit',
+            gross_amount=100,
+            discount_amount=0,
+            gst_amount=12,
+            net_amount=112
+        )
+        PurchaseEntryItem.objects.create(
+            purchase_entry=entry,
+            product=self.product,
+            batch_number='B-EDIT',
+            expiry_date='2030-01-31',
+            mrp=150,
+            purchase_rate=100,
+            sale_rate=120,
+            wholesale_rate=110,
+            quantity=5,
+            free_quantity=1,
+            total_amount=500.00
+        )
+        batch = ProductBatch.objects.create(
+            product=self.product,
+            batch_number='B-EDIT',
+            expiry_date='2030-01-31',
+            mrp=150,
+            purchase_rate=100,
+            sale_rate=120,
+            wholesale_rate=110,
+            quantity=6
+        )
+        self.supplier.opening_balance = Decimal('112.00')
+        self.supplier.save()
+        
+        # Perform edit via POST (modifying quantity from 5 to 10)
+        post_data_edit = {
+            'supplier': self.supplier.id,
+            'invoice_number': 'INV-EDIT-TEST',
+            'invoice_date': '2026-07-15',
+            'payment_type': 'Credit',
+            'gross_amount': '200.00',
+            'discount_amount': '0.00',
+            'gst_amount': '24.00',
+            'net_amount': '224.00',
+            'product[]': [self.product.id],
+            'batch_number[]': ['B-EDIT'],
+            'expiry_date[]': ['2030-01-31'],
+            'mrp[]': ['150.00'],
+            'purchase_rate[]': ['100.00'],
+            'sale_rate[]': ['120.00'],
+            'wholesale_rate[]': ['110.00'],
+            'quantity[]': ['10'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['224.00']
+        }
+        
+        response = self.client.post(reverse('purchase_entry_edit', args=[entry.id]), post_data_edit)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify supplier balance updated (old 112 reverted, new 224 added = 224)
+        self.supplier.refresh_from_db()
+        self.assertEqual(float(self.supplier.opening_balance), 224.00)
+        
+        # Verify batch stock adjusted (6 starting - 6 old + 10 new = 10)
+        batch.refresh_from_db()
+        self.assertEqual(batch.quantity, 10)
+        
+        # Now Delete the entry
+        response = self.client.post(reverse('purchase_entry_delete', args=[entry.id]))
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify entry deleted
+        self.assertFalse(PurchaseEntry.objects.filter(id=entry.id).exists())
+        
+        # Verify supplier balance reverted to 0
+        self.supplier.refresh_from_db()
+        self.assertEqual(float(self.supplier.opening_balance), 0.00)
+        
+        # Verify stock additions fully reverted (10 - 10 = 0)
+        batch.refresh_from_db()
+        self.assertEqual(batch.quantity, 0)
+
+
+class SalesPaymentAndLedgerTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        from wholesaleApp.models import CustomerMaster, ProductMaster, ProductBatch, AreaMaster
+        from decimal import Decimal
+        
+        self.user = User.objects.create_user(username="testoperator", password="pwd")
+        
+        # Setup matrix / permissions
+        from wholesaleApp.views.security_helpers import seed_default_permissions
+        seed_default_permissions()
+        
+        from wholesaleApp.models import AppFeature, UserFeaturePermission
+        feature_sales = AppFeature.objects.get(codename="sales_create")
+        feature_cust = AppFeature.objects.get(codename="customer_crud")
+        feature_ledger = AppFeature.objects.get(codename="customer_ledger")
+        feature_payment = AppFeature.objects.get(codename="payment_collection")
+        feature_outstanding = AppFeature.objects.get(codename="report_outstanding")
+        
+        UserFeaturePermission.objects.create(user=self.user, feature=feature_sales, is_granted=True)
+        UserFeaturePermission.objects.create(user=self.user, feature=feature_cust, is_granted=True)
+        UserFeaturePermission.objects.create(user=self.user, feature=feature_ledger, is_granted=True)
+        UserFeaturePermission.objects.create(user=self.user, feature=feature_payment, is_granted=True)
+        UserFeaturePermission.objects.create(user=self.user, feature=feature_outstanding, is_granted=True)
+        
+        self.area = AreaMaster.objects.create(city="Test City", code="TC1")
+        self.retailer = CustomerMaster.objects.create(
+            name="Test Retailer",
+            mobile="9988776655",
+            area=self.area,
+            city="Test City",
+            state="Test State",
+            opening_balance=Decimal("0.00")
+        )
+        
+        from wholesaleApp.models import CompanyMaster, ProductTypeMaster
+        self.company = CompanyMaster.objects.create(name="Test Pharma")
+        self.p_type = ProductTypeMaster.objects.create(name="Tab")
+        
+        self.product = ProductMaster.objects.create(
+            name="Test Medicine",
+            company=self.company,
+            product_type=self.p_type,
+            pack_size="10"
+        )
+        
+        self.batch = ProductBatch.objects.create(
+            product=self.product,
+            batch_number="B-1234",
+            expiry_date="2030-12-31",
+            mrp=Decimal("112.00"),
+            purchase_rate=Decimal("80.00"),
+            sale_rate=Decimal("100.00"),
+            wholesale_rate=Decimal("90.00"),
+            quantity=100
+        )
+
+    def test_cash_vs_credit_invoice_creation(self):
+        from wholesaleApp.models import SalesInvoice, CustomerMaster
+        from django.urls import reverse
+        
+        self.client.force_login(self.user)
+        
+        # 1. Test Cash Invoice (default behavior / selection)
+        post_data_cash = {
+            'customer': self.retailer.id,
+            'invoice_date': '2026-07-16',
+            'payment_type': 'Cash',
+            'gross_amount': '100.00',
+            'discount_amount': '0.00',
+            'gst_amount': '12.00',
+            'net_amount': '112.00',
+            'product[]': [self.product.id],
+            'batch[]': [self.batch.id],
+            'sale_rate[]': ['100.00'],
+            'quantity[]': ['1'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['112.00']
+        }
+        
+        response = self.client.post(reverse('invoice_create'), post_data_cash)
+        self.assertEqual(response.status_code, 302)
+        
+        # Cash invoice net_amount is 112, but it should NOT increase customer's outstanding balance
+        self.retailer.refresh_from_db()
+        self.assertEqual(float(self.retailer.opening_balance), 0.00)
+        
+        # Verify invoice created has payment_type='Cash'
+        cash_invoice = SalesInvoice.objects.get(payment_type='Cash')
+        self.assertEqual(cash_invoice.payment_type, 'Cash')
+        
+        # 2. Test Credit Invoice
+        post_data_credit = {
+            'customer': self.retailer.id,
+            'invoice_date': '2026-07-16',
+            'payment_type': 'Credit',
+            'gross_amount': '100.00',
+            'discount_amount': '0.00',
+            'gst_amount': '12.00',
+            'net_amount': '112.00',
+            'product[]': [self.product.id],
+            'batch[]': [self.batch.id],
+            'sale_rate[]': ['100.00'],
+            'quantity[]': ['1'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['112.00']
+        }
+        
+        response = self.client.post(reverse('invoice_create'), post_data_credit)
+        self.assertEqual(response.status_code, 302)
+        
+        # Credit invoice net_amount is 112, it SHOULD increase customer's outstanding balance to 112
+        self.retailer.refresh_from_db()
+        self.assertEqual(float(self.retailer.opening_balance), 112.00)
+
+    def test_invoice_edit_payment_type(self):
+        from wholesaleApp.models import SalesInvoice, SalesInvoiceItem
+        from django.urls import reverse
+        from decimal import Decimal
+        
+        self.client.force_login(self.user)
+        
+        # Create a Credit invoice first (increases balance to 112)
+        invoice = SalesInvoice.objects.create(
+            customer=self.retailer,
+            invoice_date="2026-07-16",
+            payment_type="Credit",
+            gross_amount=Decimal("100.00"),
+            discount_amount=Decimal("0.00"),
+            gst_amount=Decimal("12.00"),
+            net_amount=Decimal("112.00")
+        )
+        SalesInvoiceItem.objects.create(
+            sales_invoice=invoice,
+            product=self.product,
+            batch=self.batch,
+            quantity=1,
+            free_quantity=0,
+            sale_rate=Decimal("100.00"),
+            total_amount=Decimal("112.00")
+        )
+        self.retailer.opening_balance = Decimal("112.00")
+        self.retailer.save()
+        
+        # Edit the invoice to Cash (should adjust balance from 112 back to 0)
+        post_data_edit = {
+            'customer': self.retailer.id,
+            'invoice_date': '2026-07-16',
+            'payment_type': 'Cash',
+            'gross_amount': '100.00',
+            'discount_amount': '0.00',
+            'gst_amount': '12.00',
+            'net_amount': '112.00',
+            'product[]': [self.product.id],
+            'batch[]': [self.batch.id],
+            'sale_rate[]': ['100.00'],
+            'quantity[]': ['1'],
+            'free_quantity[]': ['0'],
+            'discount_percentage[]': ['0.00'],
+            'total_amount[]': ['112.00']
+        }
+        
+        response = self.client.post(reverse('invoice_edit', args=[invoice.id]), post_data_edit)
+        self.assertEqual(response.status_code, 302)
+        
+        self.retailer.refresh_from_db()
+        self.assertEqual(float(self.retailer.opening_balance), 0.00)
+        
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.payment_type, 'Cash')
+
+    def test_customer_payment_ledger_flow(self):
+        from wholesaleApp.models import CustomerPayment
+        from django.urls import reverse
+        from decimal import Decimal
+        
+        self.client.force_login(self.user)
+        
+        # Set retailer balance to 500
+        self.retailer.opening_balance = Decimal("500.00")
+        self.retailer.save()
+        
+        # Add a payment of 200 via POST
+        post_data_pay = {
+            'customer': self.retailer.id,
+            'payment_date': '2026-07-16',
+            'amount': '200.00',
+            'payment_mode': 'UPI',
+            'reference_no': 'REF12345',
+            'remarks': 'Test receipt'
+        }
+        
+        response = self.client.post(reverse('customer_payment_add'), post_data_pay)
+        self.assertEqual(response.status_code, 302)
+        
+        # Check that retailer balance decreased to 300
+        self.retailer.refresh_from_db()
+        self.assertEqual(float(self.retailer.opening_balance), 300.00)
+        
+        # Check that payment object was created
+        payment = CustomerPayment.objects.get(customer=self.retailer)
+        self.assertEqual(float(payment.amount), 200.00)
+        self.assertEqual(payment.payment_mode, 'UPI')
+        
+        # Test Ledger View Load
+        ledger_url = reverse('customer_ledger') + f"?customer={self.retailer.id}"
+        response_ledger = self.client.get(ledger_url)
+        self.assertEqual(response_ledger.status_code, 200)
+        self.assertContains(response_ledger, "Test Retailer")
+        self.assertContains(response_ledger, "REF12345")
+        
+        # Test delete payment
+        response_del = self.client.post(reverse('customer_payment_delete', args=[payment.id]))
+        self.assertEqual(response_del.status_code, 302)
+        
+        # Customer balance should be restored to 500
+        self.retailer.refresh_from_db()
+        self.assertEqual(float(self.retailer.opening_balance), 500.00)
+        
+        # Payment should be deleted
+        self.assertFalse(CustomerPayment.objects.filter(id=payment.id).exists())
+
+    def test_outstanding_report_date_filtering(self):
+        from wholesaleApp.models import SalesInvoice, SalesInvoiceItem, CustomerPayment
+        from django.urls import reverse
+        from decimal import Decimal
+        
+        self.client.force_login(self.user)
+        
+        # Create a Credit invoice on 2026-07-05
+        invoice = SalesInvoice.objects.create(
+            customer=self.retailer,
+            invoice_date="2026-07-05",
+            payment_type="Credit",
+            gross_amount=Decimal("100.00"),
+            discount_amount=Decimal("0.00"),
+            gst_amount=Decimal("12.00"),
+            net_amount=Decimal("112.00")
+        )
+        SalesInvoiceItem.objects.create(
+            sales_invoice=invoice,
+            product=self.product,
+            batch=self.batch,
+            quantity=1,
+            free_quantity=0,
+            sale_rate=Decimal("100.00"),
+            total_amount=Decimal("112.00")
+        )
+        
+        # Create a payment on 2026-07-07
+        CustomerPayment.objects.create(
+            customer=self.retailer,
+            payment_date="2026-07-07",
+            amount=Decimal("40.00"),
+            payment_mode="Cash"
+        )
+        
+        # Set retailer balance
+        self.retailer.opening_balance = Decimal("72.00")
+        self.retailer.save()
+        
+        # Query with matching date range: 2026-07-01 to 2026-07-10
+        response = self.client.get(reverse('report_outstanding'), {'from_date': '2026-07-01', 'to_date': '2026-07-10'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Test Retailer")
+        self.assertContains(response, "72.00")
+        
+        # Query with non-matching date range: 2026-07-11 to 2026-07-20
+        response_non_match = self.client.get(reverse('report_outstanding'), {'from_date': '2026-07-11', 'to_date': '2026-07-20'})
+        self.assertEqual(response_non_match.status_code, 200)
+        self.assertNotContains(response_non_match, "Test Retailer")
+
+    def test_customer_ledger_date_filtering(self):
+        from wholesaleApp.models import SalesInvoice, SalesInvoiceItem, CustomerPayment
+        from django.urls import reverse
+        from decimal import Decimal
+        
+        self.client.force_login(self.user)
+        
+        # Create a Credit invoice on 2026-07-05 (increases balance to 112)
+        invoice = SalesInvoice.objects.create(
+            customer=self.retailer,
+            invoice_date="2026-07-05",
+            payment_type="Credit",
+            gross_amount=Decimal("100.00"),
+            discount_amount=Decimal("0.00"),
+            gst_amount=Decimal("12.00"),
+            net_amount=Decimal("112.00")
+        )
+        SalesInvoiceItem.objects.create(
+            sales_invoice=invoice,
+            product=self.product,
+            batch=self.batch,
+            quantity=1,
+            free_quantity=0,
+            sale_rate=Decimal("100.00"),
+            total_amount=Decimal("112.00")
+        )
+        
+        # Create a payment on 2026-07-07 (decreases balance by 40)
+        CustomerPayment.objects.create(
+            customer=self.retailer,
+            payment_date="2026-07-07",
+            amount=Decimal("40.00"),
+            payment_mode="Cash"
+        )
+        
+        # Set retailer balance
+        self.retailer.opening_balance = Decimal("72.00")
+        self.retailer.save()
+        
+        # Query ledger with date filter: 2026-07-06 to 2026-07-10 (should only show payment, not the invoice)
+        ledger_url = reverse('customer_ledger') + f"?customer={self.retailer.id}&from_date=2026-07-06&to_date=2026-07-10"
+        response = self.client.get(ledger_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Payment Received")
+        self.assertNotContains(response, "Sales Invoice")
+        # The display opening balance (initial_balance) should be 112.00 (since invoice was on 2026-07-05)
+        self.assertContains(response, "112.00")
+
+    def test_outstanding_report_area_and_aging_filtering(self):
+        from wholesaleApp.models import SalesInvoice, SalesInvoiceItem, AreaMaster
+        from django.urls import reverse
+        from decimal import Decimal
+        from django.utils import timezone
+        
+        self.client.force_login(self.user)
+        
+        # Create a Credit invoice (sales) on 2026-07-05
+        invoice = SalesInvoice.objects.create(
+            customer=self.retailer,
+            invoice_date="2026-07-05",
+            payment_type="Credit",
+            gross_amount=Decimal("100.00"),
+            discount_amount=Decimal("0.00"),
+            gst_amount=Decimal("12.00"),
+            net_amount=Decimal("112.00")
+        )
+        SalesInvoiceItem.objects.create(
+            sales_invoice=invoice,
+            product=self.product,
+            batch=self.batch,
+            quantity=1,
+            free_quantity=0,
+            sale_rate=Decimal("100.00"),
+            total_amount=Decimal("112.00")
+        )
+        
+        self.retailer.opening_balance = Decimal("112.00")
+        self.retailer.save()
+        
+        # Query with matching Area: self.area (Test City)
+        response = self.client.get(reverse('report_outstanding'), {'area': self.area.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Test Retailer")
+        self.assertContains(response, "Aging")
+        self.assertContains(response, "Days")
+        
+        # Query with a different Area
+        other_area = AreaMaster.objects.create(code="OTH1", city="Other City")
+        response_other = self.client.get(reverse('report_outstanding'), {'area': other_area.id})
+        self.assertEqual(response_other.status_code, 200)
+        self.assertNotContains(response_other, "Test Retailer")
 
 
 

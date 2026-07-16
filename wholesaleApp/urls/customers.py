@@ -10,7 +10,10 @@ from wholesaleApp.views.customers_views import (
     area_delete,
     subarea_create,
     subarea_edit,
-    subarea_delete
+    subarea_delete,
+    customer_ledger,
+    customer_payment_add,
+    customer_payment_delete
 )
 
 urlpatterns = [
@@ -18,6 +21,10 @@ urlpatterns = [
     path("customer/create/", customer_create, name='createcustomer'),
     path("customer/edit/<int:pk>/", customer_edit, name='customer_edit'),
     path("customer/delete/<int:pk>/", customer_delete, name='customer_delete'),
+    
+    path("customer/ledger/", customer_ledger, name='customer_ledger'),
+    path("customer/payment/add/", customer_payment_add, name='customer_payment_add'),
+    path("customer/payment/delete/<int:pk>/", customer_payment_delete, name='customer_payment_delete'),
     
     # Area Master
     path("area/list/", area_list, name='area_list'),

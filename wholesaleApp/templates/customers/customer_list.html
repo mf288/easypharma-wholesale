@@ -18,6 +18,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Name</th>
+                    <th>Customer Type</th>
                     <th>Mobile</th>
                     <th>GST Number</th>
                     <th>Area</th>
@@ -30,6 +31,13 @@
                 {% for customer in customers %}
                 <tr>
                     <td><strong>{{ customer.name }}</strong></td>
+                    <td>
+                        {% if customer.customer_type == 'Wholesaler' %}
+                            <span class="badge bg-info text-dark">Wholesaler</span>
+                        {% else %}
+                            <span class="badge bg-light text-dark border">Retailer</span>
+                        {% endif %}
+                    </td>
                     <td>{{ customer.mobile }}</td>
                     <td>{{ customer.gstin }}</td>
                     <td>{{ customer.subarea.name }}</td>
@@ -51,7 +59,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center py-4">No customers found.</td></tr>
+                <tr><td colspan="9" class="text-center py-4">No customers found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

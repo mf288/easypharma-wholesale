@@ -12,6 +12,7 @@ class ProductBatch(TenantModel):
     mrp = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="MRP (₹)")
     purchase_rate = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Purchase Rate (₹)")
     sale_rate = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Sale Rate (₹)")
+    wholesale_rate = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Wholesale Rate (₹)")
     quantity = models.IntegerField(default=0, verbose_name="Available Stock (Packs)")
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -76,6 +77,7 @@ class PurchaseEntry(TenantModel):
     supplier = models.ForeignKey(SupplierMaster, on_delete=models.PROTECT, related_name='purchase_entries', verbose_name="Supplier")
     entry_date = models.DateField(auto_now_add=True, verbose_name="Date Recorded")
     invoice_date = models.DateField(verbose_name="Invoice Date")
+    payment_type = models.CharField(max_length=10, choices=(('Cash', 'Cash'), ('Credit', 'Credit')), default='Credit', verbose_name="Payment Type")
     
     gross_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Gross Amount (₹)")
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Discount (₹)")
@@ -103,6 +105,7 @@ class PurchaseEntryItem(TenantModel):
     mrp = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="MRP (₹)")
     purchase_rate = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Purchase Rate (₹)")
     sale_rate = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Sale Rate (₹)")
+    wholesale_rate = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Wholesale Rate (₹)")
     
     quantity = models.IntegerField(verbose_name="Billed Qty (Packs)")
     free_quantity = models.IntegerField(default=0, verbose_name="Free Qty")

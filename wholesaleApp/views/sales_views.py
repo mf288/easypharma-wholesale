@@ -31,6 +31,7 @@ def get_product_batches(request, pk):
             'mrp': float(b.mrp),
             'purchase_rate': float(b.purchase_rate),
             'sale_rate': float(b.sale_rate),
+            'wholesale_rate': float(b.wholesale_rate),
             'quantity': b.quantity
         })
     return JsonResponse(data, safe=False)
@@ -68,6 +69,7 @@ def invoice_create(request):
     if request.method == 'POST':
         customer_id = request.POST.get('customer')
         invoice_date = request.POST.get('invoice_date')
+        payment_type = request.POST.get('payment_type', 'Credit')
         gross_amount = Decimal(request.POST.get('gross_amount', 0))
         discount_amount = Decimal(request.POST.get('discount_amount', 0))
         gst_amount = Decimal(request.POST.get('gst_amount', 0))
@@ -104,6 +106,7 @@ def invoice_create(request):
             invoice_number=invoice_number,
             customer_id=customer_id,
             invoice_date=invoice_date,
+            payment_type=payment_type,
             gross_amount=gross_amount,
             discount_amount=discount_amount,
             gst_amount=gst_amount,
@@ -141,9 +144,10 @@ def invoice_create(request):
             batch.save()
             
         # 4. Update Customer Outstanding Balance (Accounts Receivable)
-        customer = CustomerMaster.objects.get(id=customer_id)
-        customer.opening_balance += invoice.net_amount
-        customer.save()
+        if payment_type == 'Credit':
+            customer = CustomerMaster.objects.get(id=customer_id)
+            customer.opening_balance += invoice.net_amount
+            customer.save()
         
         messages.success(request, f"Sales Invoice {invoice_number} saved. Stock deducted and customer balance updated.")
         request.session['print_invoice_id'] = invoice.id
@@ -291,3 +295,150 @@ def invoice_print(request, pk):
         'net_amount_words': net_amount_words
     }
     return render(request, 'sale/invoice_print.html', context)
+
+
+# @login_required
+@transaction.atomic
+def invoice_edit(request, pk):
+    from wholesaleApp.views.security_helpers import has_feature_access, get_user_permissions_context
+    if not has_feature_access(request.user, 'sales_create'):
+        messages.error(request, "Access Denied: You do not have permission to edit Sale Bills.")
+        return redirect('invoice_list')
+        
+    invoice = get_object_or_404(SalesInvoice, pk=pk)
+    customers = CustomerMaster.objects.filter(status=True, is_deleted=False)
+    products = ProductMaster.objects.filter(status=True, is_deleted=False)
+    
+    if request.method == 'POST':
+        customer_id = request.POST.get('customer')
+        invoice_date = request.POST.get('invoice_date')
+        payment_type = request.POST.get('payment_type', 'Credit')
+        gross_amount = Decimal(request.POST.get('gross_amount', 0))
+        discount_amount = Decimal(request.POST.get('discount_amount', 0))
+        gst_amount = Decimal(request.POST.get('gst_amount', 0))
+        net_amount = Decimal(request.POST.get('net_amount', 0))
+        
+        # Extract item arrays from POST
+        product_ids = request.POST.getlist('product[]')
+        batch_ids = request.POST.getlist('batch[]')
+        sale_rates = request.POST.getlist('sale_rate[]')
+        quantities = request.POST.getlist('quantity[]')
+        free_quantities = request.POST.getlist('free_quantity[]')
+        discounts = request.POST.getlist('discount_percentage[]')
+        totals = request.POST.getlist('total_amount[]')
+        
+        # 1. Temporarily restore all old stock quantities to calculate inventory correctly
+        old_items = list(invoice.items.all().select_related('batch'))
+        for item in old_items:
+            batch = item.batch
+            batch.quantity += (item.quantity + item.free_quantity)
+            batch.save()
+            
+        # 2. Check if new items have sufficient stock
+        for i in range(len(product_ids)):
+            batch_id = batch_ids[i]
+            qty = int(quantities[i])
+            free_qty = int(free_quantities[i]) if free_quantities[i] else 0
+            
+            batch = ProductBatch.objects.get(id=batch_id)
+            if batch.quantity < (qty + free_qty):
+                # Rollback temporary stock changes by restoring them back to old state
+                for old_item in old_items:
+                    obatch = old_item.batch
+                    obatch.quantity -= (old_item.quantity + old_item.free_quantity)
+                    obatch.save()
+                messages.error(request, f"Insufficient stock for batch {batch.batch_number}! Available: {batch.quantity}")
+                return redirect('invoice_edit', pk=pk)
+                
+        # 3. Update customer outstanding balance: revert old net amount
+        if invoice.payment_type == 'Credit':
+            old_customer = invoice.customer
+            old_customer.opening_balance -= invoice.net_amount
+            old_customer.save()
+        
+        # 4. Delete old invoice items
+        invoice.items.all().delete()
+        
+        # 5. Save updated invoice headers
+        invoice.customer_id = customer_id
+        invoice.invoice_date = invoice_date
+        invoice.payment_type = payment_type
+        invoice.gross_amount = gross_amount
+        invoice.discount_amount = discount_amount
+        invoice.gst_amount = gst_amount
+        invoice.net_amount = net_amount
+        invoice.save()
+        
+        # 6. Save new items and deduct stock
+        for i in range(len(product_ids)):
+            prod_id = product_ids[i]
+            batch_id = batch_ids[i]
+            s_rate = Decimal(sale_rates[i])
+            qty = int(quantities[i])
+            free_qty = int(free_quantities[i]) if free_quantities[i] else 0
+            disc_pct = Decimal(discounts[i]) if discounts[i] else Decimal('0.00')
+            total_val = Decimal(totals[i])
+            
+            batch = ProductBatch.objects.get(id=batch_id)
+            SalesInvoiceItem.objects.create(
+                sales_invoice=invoice,
+                product_id=prod_id,
+                batch=batch,
+                quantity=qty,
+                free_quantity=free_qty,
+                sale_rate=s_rate,
+                discount_percentage=disc_pct,
+                total_amount=total_val
+            )
+            # Deduct stock
+            batch.quantity -= (qty + free_qty)
+            batch.save()
+            
+        # 7. Apply new invoice net amount to customer balance
+        if payment_type == 'Credit':
+            new_customer = invoice.customer
+            new_customer.opening_balance += invoice.net_amount
+            new_customer.save()
+        
+        messages.success(request, f"Invoice {invoice.invoice_number} updated successfully!")
+        request.session['print_invoice_id'] = invoice.id
+        return redirect('invoice_list')
+        
+    context = {
+        'invoice': invoice,
+        'customers': customers,
+        'products': products,
+        'page_title': f'Edit Sales Invoice {invoice.invoice_number}',
+        'user_perms': get_user_permissions_context(request.user)
+    }
+    return render(request, 'sale/invoice_edit.html', context)
+
+
+# @login_required
+@transaction.atomic
+def invoice_delete(request, pk):
+    from wholesaleApp.views.security_helpers import has_feature_access
+    if not has_feature_access(request.user, 'sales_create'):
+        messages.error(request, "Access Denied: You do not have permission to delete/cancel Sale Bills.")
+        return redirect('invoice_list')
+        
+    invoice = get_object_or_404(SalesInvoice, pk=pk)
+    
+    # 1. Restore inventory stock
+    for item in invoice.items.all().select_related('batch'):
+        batch = item.batch
+        batch.quantity += (item.quantity + item.free_quantity)
+        batch.save()
+        
+    # 2. Subtract from customer outstanding balance
+    if invoice.payment_type == 'Credit':
+        customer = invoice.customer
+        customer.opening_balance -= invoice.net_amount
+        customer.save()
+    
+    # 3. Delete the invoice
+    invoice_number = invoice.invoice_number
+    invoice.delete()
+    
+    messages.success(request, f"Invoice {invoice_number} has been deleted successfully, stock restored and customer balance reverted.")
+    return redirect('invoice_list')

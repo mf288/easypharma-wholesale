@@ -39,7 +39,12 @@ class SubareaMaster(TenantModel):
 
 # ==================== CUSTOMER MASTER ====================
 class CustomerMaster(TenantModel):
+    CUSTOMER_TYPE_CHOICES = (
+        ('Retailer', 'Retailer / Chemist'),
+        ('Wholesaler', 'Wholesaler / Sub-distributor'),
+    )
     name = models.CharField(max_length=255, verbose_name="Customer Name")
+    customer_type = models.CharField(max_length=20, choices=CUSTOMER_TYPE_CHOICES, default='Retailer', verbose_name="Customer Type")
     mobile = models.CharField(max_length=15)
     alternate_mobile = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
@@ -74,3 +79,27 @@ class CustomerMaster(TenantModel):
 
     def __str__(self):
         return self.name
+
+class CustomerPayment(TenantModel):
+    customer = models.ForeignKey(CustomerMaster, on_delete=models.CASCADE, related_name='payments', verbose_name="Customer")
+    payment_date = models.DateField(verbose_name="Payment Date")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Amount Received (₹)")
+    payment_mode = models.CharField(
+        max_length=20,
+        choices=(('Cash', 'Cash'), ('Bank', 'Bank Transfer'), ('UPI', 'UPI'), ('Cheque', 'Cheque')),
+        default='Cash',
+        verbose_name="Payment Mode"
+    )
+    reference_no = models.CharField(max_length=50, blank=True, null=True, verbose_name="Ref / Trans No.")
+    remarks = models.TextField(blank=True, null=True, verbose_name="Remarks")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Customer Payment"
+        verbose_name_plural = "Customer Payments"
+        ordering = ['-payment_date', '-id']
+
+    def __str__(self):
+        return f"Payment {self.id} - {self.customer.name} - ₹{self.amount}"

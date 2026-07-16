@@ -20,6 +20,7 @@
                     <th>Invoice Number</th>
                     <th>Customer (Chemist / Hospital)</th>
                     <th>Invoice Date</th>
+                    <th>Payment Type</th>
                     <th>Gross Value</th>
                     <th>Discount</th>
                     <th>GST Tax</th>
@@ -34,15 +35,30 @@
                     <td><strong>{{ invoice.invoice_number }}</strong></td>
                     <td>{{ invoice.customer.name }}</td>
                     <td>{{ invoice.invoice_date }}</td>
+                    <td>
+                        {% if invoice.payment_type == 'Cash' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">Cash</span>
+                        {% else %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Credit</span>
+                        {% endif %}
+                    </td>
                     <td>₹{{ invoice.gross_amount|floatformat:2 }}</td>
                     <td class="text-danger">-₹{{ invoice.discount_amount|floatformat:2 }}</td>
                     <td class="text-success">+₹{{ invoice.gst_amount|floatformat:2 }}</td>
                     <td class="fw-bold text-primary">₹{{ invoice.net_amount|floatformat:2 }}</td>
                     <td>{{ invoice.created_by.username|default:"-" }}</td>
                     <td class="text-center">
-                        <a href="{% url 'invoice_print' invoice.id %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                            <i class="bi bi-printer"></i> Print (A4 Half)
-                        </a>
+                        <div class="d-flex justify-content-center gap-1">
+                            <a href="{% url 'invoice_print' invoice.id %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Print Invoice">
+                                <i class="bi bi-printer"></i> Print
+                            </a>
+                            <a href="{% url 'invoice_edit' invoice.id %}" class="btn btn-sm btn-outline-warning rounded-pill px-2" title="Edit Invoice">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <a href="{% url 'invoice_delete' invoice.id %}" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Cancel/Delete Invoice" onclick="return confirm('Are you sure you want to cancel and delete this invoice? This will restore stock levels and revert customer outstanding balance.');">
+                                <i class="bi bi-trash"></i> Cancel
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}

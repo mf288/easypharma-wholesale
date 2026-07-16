@@ -1,0 +1,816 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-pencil-square text-primary"></i> {{ page_title }}</h5>
+                <a href="{% url 'purchase_entry_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <!-- Purchase Header Info -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Supplier <span class="text-danger">*</span></label>
+                            <div class="combobox-container">
+                                <input type="text" id="supplierSearch" class="form-control combobox-input" placeholder="Type Supplier Name..." required value="{{ entry.supplier.name }}">
+                                <input type="hidden" name="supplier" id="supplierSelect" class="combobox-hidden-value" required value="{{ entry.supplier.id }}">
+                                <ul class="combobox-menu shadow-sm"></ul>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small fw-bold">Supplier Invoice No <span class="text-danger">*</span></label>
+                            <input type="text" name="invoice_number" id="invoiceNumber" class="form-control" placeholder="e.g., INV-9874" required value="{{ entry.invoice_number }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small fw-bold">Invoice Date <span class="text-danger">*</span></label>
+                            <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{{ entry.invoice_date|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Payment Type <span class="text-danger">*</span></label>
+                            <select name="payment_type" id="paymentType" class="form-select" required>
+                                <option value="Credit" {% if entry.payment_type == 'Credit' %}selected{% endif %}>Credit (Accounts Payable)</option>
+                                <option value="Cash" {% if entry.payment_type == 'Cash' %}selected{% endif %}>Cash (Immediate Paid)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small fw-bold">Entry Date</label>
+                            <input type="text" class="form-control bg-light" value="{{ entry.entry_date }} (Today)" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Items Table Section -->
+                    <div class="border-top pt-4">
+                        <h5 class="mb-3 fw-bold text-dark">Purchase Invoice Items</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle" id="invoiceTable" style="min-width: 1200px;">
+                                <thead class="table-light text-center">
+                                    <tr>
+                                        <th style="width: 20%;">Product <span class="text-danger">*</span></th>
+                                        <th style="width: 9%;">Batch No <span class="text-danger">*</span></th>
+                                        <th style="width: 9%;">Expiry (MM/YY) <span class="text-danger">*</span></th>
+                                        <th style="width: 7%;">MRP (₹) <span class="text-danger">*</span></th>
+                                        <th style="width: 7%;">P-Rate (₹) <span class="text-danger">*</span></th>
+                                        <th style="width: 7%;">S-Rate (₹) <span class="text-danger">*</span></th>
+                                        <th style="width: 7%;">W-Rate (₹)</th>
+                                        <th style="width: 6%;">Qty <span class="text-danger">*</span></th>
+                                        <th style="width: 5%;">Free</th>
+                                        <th style="width: 5%;">GST %</th>
+                                        <th style="width: 5%;">Disc %</th>
+                                        <th style="width: 10%;">Total Amount</th>
+                                        <th style="width: 4%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic invoice items will go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-primary mt-3 mb-4 rounded-pill px-4" onclick="addNewItemRow()">
+                            <i class="bi bi-plus-circle"></i> Add Item Row (F2)
+                        </button>
+                    </div>
+
+                    <!-- Invoice Summaries -->
+                    <div class="row justify-content-end mb-4 border-top pt-4">
+                        <div class="col-md-4">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted">Gross Taxable Value:</td>
+                                    <td class="text-end fw-semibold">₹<span id="summaryGross">0.00</span></td>
+                                    <input type="hidden" name="gross_amount" id="inputGross" value="{{ entry.gross_amount }}">
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Bill Discount (₹):</td>
+                                    <td class="text-end text-danger fw-semibold">
+                                        <input type="number" name="discount_amount" id="inputDiscount" class="form-control form-control-sm text-end d-inline-block" style="width: 120px;" step="0.01" min="0" value="{{ entry.discount_amount }}" oninput="recalculateInvoiceSummary()">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Total GST Tax:</td>
+                                    <td class="text-end text-success fw-semibold">+₹<span id="summaryGst">0.00</span></td>
+                                    <input type="hidden" name="gst_amount" id="inputGst" value="{{ entry.gst_amount }}">
+                                </tr>
+                                <tr class="border-top">
+                                    <td class="fw-bold fs-5 text-primary">Net Amount Payable:</td>
+                                    <td class="text-end fw-bold fs-5 text-primary">₹<span id="summaryNet">0.00</span></td>
+                                    <input type="hidden" name="net_amount" id="inputNet" value="{{ entry.net_amount }}">
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Submission Actions -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" id="submitBtn" class="btn btn-success btn-lg px-5 rounded-3">Save Changes</button>
+                        <a href="{% url 'purchase_entry_list' %}" class="btn btn-secondary btn-lg px-5 rounded-3">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== DIALOG MODALS ==================== -->
+<!-- Quick Supplier Modal -->
+<div class="modal fade" id="addSupplierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Quick Add Supplier</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="quickSupplierForm">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                            <input type="text" id="suppName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                            <input type="text" id="suppMobile" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">City</label>
+                            <input type="text" id="suppCity" class="form-control" value="Mumbai">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">State</label>
+                            <input type="text" id="suppState" class="form-control" value="Maharashtra">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Full Address</label>
+                            <textarea id="suppAddress" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Quick Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="quickProductForm">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Product Name / Brand <span class="text-danger">*</span></label>
+                            <input type="text" id="prodName" class="form-control" placeholder="e.g. Dolo 650mg" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pack size <span class="text-danger">*</span></label>
+                            <input type="text" id="prodPack" class="form-control" placeholder="e.g. 15 Tab" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">GST Tax Rate <span class="text-danger">*</span></label>
+                            <select id="prodGst" class="form-select" required>
+                                <option value="12.00">12%</option>
+                                <option value="18.00">18%</option>
+                                <option value="5.00">5%</option>
+                                <option value="0.00">0%</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Company Manufacturer <span class="text-danger">*</span></label>
+                            <select id="prodCompany" class="form-select" required>
+                                <option value="">Select Company</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Product Category Type <span class="text-danger">*</span></label>
+                            <select id="prodType" class="form-select" required>
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global datasets
+    const supplierList = [
+        {% for supplier in suppliers %}
+        { id: "{{ supplier.id }}", name: "{{ supplier.name }}" },
+        {% endfor %}
+    ];
+
+    const productCatalog = {
+        {% for product in products %}
+        "{{ product.id }}": {
+            name: "{{ product.name }}",
+            pack: "{{ product.pack_size }}",
+            gst: parseFloat("{{ product.gst_rate }}")
+        },
+        {% endfor %}
+    };
+
+    const productList = Object.entries(productCatalog).map(([id, prod]) => ({
+        id: id,
+        name: prod.name,
+        pack: prod.pack
+    }));
+
+    // Inject existing items in edit mode
+    const existingItems = [
+        {% for item in entry.items.all %}
+        {
+            productId: "{{ item.product.id }}",
+            productName: "{{ item.product.name }}",
+            packSize: "{{ item.product.pack_size }}",
+            batchNumber: "{{ item.batch_number }}",
+            expiryMask: "{{ item.expiry_date|date:'m/y' }}",
+            expiryReal: "{{ item.expiry_date|date:'Y-m-d' }}",
+            mrp: "{{ item.mrp }}",
+            purchaseRate: "{{ item.purchase_rate }}",
+            saleRate: "{{ item.sale_rate }}",
+            wholesaleRate: "{{ item.wholesale_rate }}",
+            quantity: "{{ item.quantity }}",
+            freeQuantity: "{{ item.free_quantity }}",
+            discountPercentage: "{{ item.discount_percentage }}",
+            totalAmount: "{{ item.total_amount }}",
+            gstRate: "{{ item.product.gst_rate }}"
+        },
+        {% endfor %}
+    ];
+
+    let activeRowIdForProduct = null;
+
+    // ==================== PREMIUM COMBOBOX ENGINE ====================
+    function setupCombobox(inputEl, dataset, onSelectCallback, onAddCallback) {
+        const container = inputEl.closest(".combobox-container");
+        const menu = container.querySelector(".combobox-menu");
+        const hiddenInput = container.querySelector(".combobox-hidden-value");
+        let activeIdx = -1;
+
+        inputEl.addEventListener("focus", () => {
+            renderSuggestions(inputEl.value);
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!container.contains(e.target)) {
+                menu.style.display = "none";
+            }
+        });
+
+        inputEl.addEventListener("input", () => {
+            renderSuggestions(inputEl.value);
+        });
+
+        inputEl.addEventListener("keydown", (e) => {
+            const items = menu.querySelectorAll("li:not(.footer-item)");
+            
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (menu.style.display === "none") {
+                    menu.style.display = "block";
+                    return;
+                }
+                if (items.length > 0) {
+                    activeIdx = (activeIdx + 1) % items.length;
+                    highlightItem(items);
+                }
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (items.length > 0) {
+                    activeIdx = (activeIdx - 1 + items.length) % items.length;
+                    highlightItem(items);
+                }
+            } else if (e.key === "Enter") {
+                if (menu.style.display !== "none") {
+                    e.preventDefault();
+                    if (activeIdx > -1 && activeIdx < items.length) {
+                        selectItem(items[activeIdx]);
+                    } else if (items.length > 0) {
+                        selectItem(items[0]);
+                    } else {
+                        menu.style.display = "none";
+                    }
+                }
+            } else if (e.key === "Escape") {
+                menu.style.display = "none";
+            } else if (e.key === "F4") {
+                e.preventDefault();
+                menu.style.display = "none";
+                if (onAddCallback) onAddCallback();
+            }
+        });
+
+        function highlightItem(items) {
+            items.forEach((item, idx) => {
+                if (idx === activeIdx) {
+                    item.classList.add("active");
+                    item.scrollIntoView({ block: "nearest" });
+                } else {
+                    item.classList.remove("active");
+                }
+            });
+        }
+
+        function selectItem(liEl) {
+            const id = liEl.dataset.id;
+            const name = liEl.dataset.name;
+            
+            hiddenInput.value = id;
+            inputEl.value = name;
+            menu.style.display = "none";
+            activeIdx = -1;
+            
+            if (onSelectCallback) {
+                onSelectCallback(id, name);
+            }
+
+            focusNextField(inputEl);
+        }
+
+        function renderSuggestions(query) {
+            activeIdx = -1;
+            menu.innerHTML = "";
+            const filtered = dataset.filter(item => 
+                item.name.toLowerCase().includes(query.toLowerCase())
+            );
+
+            if (filtered.length > 0) {
+                filtered.forEach(item => {
+                    const li = document.createElement("li");
+                    li.dataset.id = item.id;
+                    li.dataset.name = item.name + (item.pack ? ` (${item.pack})` : '');
+                    li.innerHTML = `<a class="dropdown-item"><span>${item.name}</span> ${item.pack ? `<span class="badge bg-light text-secondary border ms-2">${item.pack}</span>` : ''}</a>`;
+                    li.addEventListener("click", () => selectItem(li));
+                    menu.appendChild(li);
+                });
+            } else {
+                const li = document.createElement("li");
+                li.className = "text-primary text-center p-3 cursor-pointer small";
+                li.innerHTML = `<i class="bi bi-plus-circle"></i> No matches found. Click to Add!`;
+                li.addEventListener("click", () => {
+                    menu.style.display = "none";
+                    if (onAddCallback) onAddCallback();
+                });
+                menu.appendChild(li);
+            }
+
+            const footerLi = document.createElement("li");
+            footerLi.className = "footer-item border-top mt-1";
+            footerLi.innerHTML = `<a class="dropdown-item text-primary fw-bold text-center py-2"><i class="bi bi-plus-lg"></i> Add New (F4)</a>`;
+            footerLi.addEventListener("click", () => {
+                menu.style.display = "none";
+                if (onAddCallback) onAddCallback();
+            });
+            menu.appendChild(footerLi);
+
+            menu.style.display = "block";
+        }
+    }
+
+    function focusNextField(currentInput) {
+        const row = currentInput.closest("tr");
+        if (row) {
+            const inputs = Array.from(row.querySelectorAll("input:not([readonly]), select"));
+            const idx = inputs.indexOf(currentInput);
+            if (idx > -1 && idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+                return;
+            }
+        }
+        
+        const allInputs = Array.from(document.querySelectorAll("#supplierSearch, #invoiceNumber, #invoiceDate, #paymentType, #invoiceTable tbody input:not([readonly])"));
+        const idx = allInputs.indexOf(currentInput);
+        if (idx > -1 && idx < allInputs.length - 1) {
+            allInputs[idx + 1].focus();
+        }
+    }
+
+    // ==================== INVOICE ROW BUILDER ====================
+    function addNewItemRow() {
+        const tableBody = document.querySelector("#invoiceTable tbody");
+        const rowId = tableBody.children.length;
+        
+        const rowHTML = `
+            <tr id="item-row-${rowId}">
+                <td>
+                    <div class="combobox-container">
+                        <input type="text" class="form-control combobox-input product-search-input" placeholder="Type Medicine..." required>
+                        <input type="hidden" name="product[]" class="select-product combobox-hidden-value" required>
+                        <ul class="combobox-menu shadow-sm"></ul>
+                    </div>
+                </td>
+                <td>
+                    <input type="text" name="batch_number[]" class="form-control text-center batch-input" placeholder="e.g. B2501" required>
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center expiry-mask-input" placeholder="MM/YY" required oninput="formatExpiry(this, ${rowId})">
+                    <input type="hidden" name="expiry_date[]" class="expiry-real-date" required>
+                </td>
+                <td>
+                    <input type="number" name="mrp[]" class="form-control text-end mrp-input" step="0.01" min="0" placeholder="0.00" required>
+                </td>
+                <td>
+                    <input type="number" name="purchase_rate[]" class="form-control text-end prate-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td>
+                    <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required>
+                </td>
+                <td>
+                    <input type="number" name="wholesale_rate[]" class="form-control text-end wrate-input" step="0.01" min="0" placeholder="0.00">
+                </td>
+                <td>
+                    <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="1" required oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td>
+                    <input type="number" name="free_quantity[]" class="form-control text-center free-input" min="0" value="0" oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light gst-display" value="12%" readonly>
+                    <input type="hidden" class="gst-input" value="12.00">
+                </td>
+                <td>
+                    <input type="number" name="discount_percentage[]" class="form-control text-center disc-input" step="0.01" min="0" max="100" value="0.00" oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td class="text-end fw-semibold">
+                    ₹<span class="row-total">0.00</span>
+                    <input type="hidden" name="total_amount[]" class="row-total-input" value="0.00">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" onclick="removeItemRow(${rowId})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', rowHTML);
+
+        // Bind Searchable Combobox to the new Row's Product input
+        const row = document.getElementById(`item-row-${rowId}`);
+        const productSearchInput = row.querySelector(".product-search-input");
+        setupCombobox(
+            productSearchInput, 
+            productList, 
+            (id, name) => onProductSelect(rowId, id),
+            () => {
+                activeRowIdForProduct = rowId;
+                openProductModal();
+            }
+        );
+    }
+
+    function addExistingItemRow(item) {
+        const tableBody = document.querySelector("#invoiceTable tbody");
+        const rowId = tableBody.children.length;
+        
+        const rowHTML = `
+            <tr id="item-row-${rowId}">
+                <td>
+                    <div class="combobox-container">
+                        <input type="text" class="form-control combobox-input product-search-input" placeholder="Type Medicine..." required value="${item.productName} (${item.packSize})">
+                        <input type="hidden" name="product[]" class="select-product combobox-hidden-value" required value="${item.productId}">
+                        <ul class="combobox-menu shadow-sm"></ul>
+                    </div>
+                </td>
+                <td>
+                    <input type="text" name="batch_number[]" class="form-control text-center batch-input" placeholder="e.g. B2501" required value="${item.batchNumber}">
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center expiry-mask-input" placeholder="MM/YY" required value="${item.expiryMask}" oninput="formatExpiry(this, ${rowId})">
+                    <input type="hidden" name="expiry_date[]" class="expiry-real-date" required value="${item.expiryReal}">
+                </td>
+                <td>
+                    <input type="number" name="mrp[]" class="form-control text-end mrp-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.mrp).toFixed(2)}">
+                </td>
+                <td>
+                    <input type="number" name="purchase_rate[]" class="form-control text-end prate-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.purchaseRate).toFixed(2)}" oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td>
+                    <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.saleRate).toFixed(2)}">
+                </td>
+                <td>
+                    <input type="number" name="wholesale_rate[]" class="form-control text-end wrate-input" step="0.01" min="0" placeholder="0.00" value="${item.wholesaleRate ? parseFloat(item.wholesaleRate).toFixed(2) : ''}">
+                </td>
+                <td>
+                    <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="${item.quantity}" required oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td>
+                    <input type="number" name="free_quantity[]" class="form-control text-center free-input" min="0" value="${item.freeQuantity}" oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light gst-display" value="${parseFloat(item.gstRate)}%" readonly>
+                    <input type="hidden" class="gst-input" value="${parseFloat(item.gstRate)}">
+                </td>
+                <td>
+                    <input type="number" name="discount_percentage[]" class="form-control text-center disc-input" step="0.01" min="0" max="100" value="${parseFloat(item.discountPercentage).toFixed(2)}" oninput="calculateRowTotals(${rowId})">
+                </td>
+                <td class="text-end fw-semibold">
+                    ₹<span class="row-total">${parseFloat(item.totalAmount).toFixed(2)}</span>
+                    <input type="hidden" name="total_amount[]" class="row-total-input" value="${parseFloat(item.totalAmount).toFixed(2)}">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" onclick="removeItemRow(${rowId})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', rowHTML);
+
+        // Bind Searchable Combobox to the Row
+        const row = document.getElementById(`item-row-${rowId}`);
+        const productSearchInput = row.querySelector(".product-search-input");
+        setupCombobox(
+            productSearchInput, 
+            productList, 
+            (id, name) => onProductSelect(rowId, id),
+            () => {
+                activeRowIdForProduct = rowId;
+                openProductModal();
+            }
+        );
+        calculateRowTotals(rowId);
+    }
+
+    function removeItemRow(id) {
+        document.getElementById(`item-row-${id}`).remove();
+        recalculateInvoiceSummary();
+    }
+
+    function onProductSelect(id, selectedProdId) {
+        const row = document.getElementById(`item-row-${id}`);
+        const gstInput = row.querySelector(".gst-input");
+        const gstDisplay = row.querySelector(".gst-display");
+        
+        if (!selectedProdId) {
+            gstInput.value = "12.00";
+            gstDisplay.value = "12%";
+            calculateRowTotals(id);
+            return;
+        }
+
+        const product = productCatalog[selectedProdId];
+        gstInput.value = product.gst;
+        gstDisplay.value = product.gst + "%";
+        
+        calculateRowTotals(id);
+    }
+
+    // ==================== CALCULATION ENGINE ====================
+    function calculateRowTotals(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        const purchaseRate = parseFloat(row.querySelector(".prate-input").value) || 0;
+        const discountPct = parseFloat(row.querySelector(".disc-input").value) || 0;
+        const gstPct = parseFloat(row.querySelector(".gst-input").value) || 0;
+        
+        const baseTaxable = qty * purchaseRate;
+        const discountAmount = baseTaxable * (discountPct / 100);
+        const taxableAfterDiscount = baseTaxable - discountAmount;
+        const gstAmount = taxableAfterDiscount * (gstPct / 100);
+        const finalRowTotal = taxableAfterDiscount + gstAmount;
+        
+        row.querySelector(".row-total").textContent = finalRowTotal.toFixed(2);
+        row.querySelector(".row-total-input").value = finalRowTotal.toFixed(2);
+        
+        row.dataset.taxable = taxableAfterDiscount.toFixed(2);
+        row.dataset.discount = discountAmount.toFixed(2);
+        row.dataset.gst = gstAmount.toFixed(2);
+        row.dataset.total = finalRowTotal.toFixed(2);
+        
+        recalculateInvoiceSummary();
+    }
+
+    function recalculateInvoiceSummary() {
+        let grossTaxableTotal = 0;
+        let gstTotal = 0;
+        
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
+            grossTaxableTotal += parseFloat(row.dataset.taxable) || 0;
+            gstTotal += parseFloat(row.dataset.gst) || 0;
+        });
+        
+        const flatDiscount = parseFloat(document.getElementById("inputDiscount").value) || 0;
+        const netPayable = grossTaxableTotal + gstTotal - flatDiscount;
+        
+        document.getElementById("summaryGross").textContent = grossTaxableTotal.toFixed(2);
+        document.getElementById("summaryGst").textContent = gstTotal.toFixed(2);
+        document.getElementById("summaryNet").textContent = netPayable.toFixed(2);
+        
+        document.getElementById("inputGross").value = grossTaxableTotal.toFixed(2);
+        document.getElementById("inputGst").value = gstTotal.toFixed(2);
+        document.getElementById("inputNet").value = netPayable.toFixed(2);
+    }
+
+    function updateLiveMarginInspect(id) {
+        // Disabled
+    }
+
+    // ==================== KEYBOARD NAVIGATION & VALIDATION ====================
+    function formatExpiry(input, id) {
+        let val = input.value.replace(/\D/g, '');
+        if (val.length > 4) val = val.substring(0, 4);
+        if (val.length > 2) {
+            val = val.substring(0,2) + "/" + val.substring(2);
+        }
+        input.value = val;
+        
+        const row = document.getElementById(`item-row-${id}`);
+        const hiddenRealDate = row.querySelector(".expiry-real-date");
+        
+        if (val.length === 5) {
+            const parts = val.split("/");
+            const month = parts[0];
+            const year = "20" + parts[1];
+            
+            // Set real date field to last day of expiry month
+            const lastDay = new Date(year, month, 0).getDate();
+            hiddenRealDate.value = `${year}-${month}-${lastDay}`;
+        } else {
+            hiddenRealDate.value = "";
+        }
+    }
+
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "F2") {
+            e.preventDefault();
+            addNewItemRow();
+            setTimeout(() => {
+                const rows = document.querySelectorAll("#invoiceTable tbody tr");
+                if (rows.length > 0) {
+                    rows[rows.length - 1].querySelector(".product-search-input").focus();
+                }
+            }, 50);
+        }
+    });
+
+    window.onload = function() {
+        setupCombobox(
+            document.getElementById("supplierSearch"),
+            supplierList,
+            (id) => {
+                document.getElementById("supplierSelect").value = id;
+            },
+            () => openSupplierModal()
+        );
+
+        // Populate existing items
+        if (existingItems && existingItems.length > 0) {
+            existingItems.forEach(item => {
+                addExistingItemRow(item);
+            });
+        } else {
+            addNewItemRow();
+        }
+
+        setTimeout(() => {
+            document.getElementById("supplierSearch").focus();
+        }, 100);
+
+        // Populate Add Product Modal company & type options
+        fetch('/product/create/')
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const compSelect = document.getElementById("prodCompany");
+                doc.querySelectorAll("select[name='company'] option").forEach(opt => {
+                    if (opt.value) compSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
+                });
+                const typeSelect = document.getElementById("prodType");
+                doc.querySelectorAll("select[name='product_type'] option").forEach(opt => {
+                    if (opt.value) typeSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
+                });
+            });
+    };
+
+    // Quick Supplier Form Submit
+    document.getElementById("quickSupplierForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("suppName").value;
+        const mobile = document.getElementById("suppMobile").value;
+        const city = document.getElementById("suppCity").value;
+        const state = document.getElementById("suppState").value;
+        const address = document.getElementById("suppAddress").value;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("mobile", mobile);
+        formData.append("city", city);
+        formData.append("state", state);
+        formData.append("address", address);
+
+        fetch("/supplier/create/?json=true", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                supplierList.push({ id: data.id, name: data.name });
+                
+                document.getElementById("supplierSelect").value = data.id;
+                document.getElementById("supplierSearch").value = data.name;
+                
+                bootstrap.Modal.getInstance(document.getElementById('addSupplierModal')).hide();
+                showToast(`Supplier "${data.name}" added successfully!`, "success");
+                
+                document.getElementById("invoiceNumber").focus();
+            }
+        });
+    });
+
+    // Quick Product Form Submit
+    document.getElementById("quickProductForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("prodName").value;
+        const pack = document.getElementById("prodPack").value;
+        const comp = document.getElementById("prodCompany").value;
+        const type = document.getElementById("prodType").value;
+        const gst = document.getElementById("prodGst").value;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("pack_size", pack);
+        formData.append("company", comp);
+        formData.append("product_type", type);
+        formData.append("gst_rate", gst);
+
+        fetch("/product/create/?json=true", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                productList.push({ id: data.id, name: data.name, pack: data.pack_size });
+                productCatalog[data.id] = {
+                    name: data.name,
+                    pack: data.pack_size,
+                    gst: parseFloat(data.gst_rate)
+                };
+
+                if (activeRowIdForProduct !== null) {
+                    const row = document.getElementById(`item-row-${activeRowIdForProduct}`);
+                    row.querySelector(".select-product").value = data.id;
+                    row.querySelector(".product-search-input").value = data.name + ` (${data.pack_size})`;
+                    onProductSelect(activeRowIdForProduct, data.id);
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                showToast(`Product "${data.name}" added successfully!`, "success");
+                
+                if (activeRowIdForProduct !== null) {
+                    const row = document.getElementById(`item-row-${activeRowIdForProduct}`);
+                    row.querySelector(".batch-input").focus();
+                }
+            }
+        });
+    });
+
+    function openSupplierModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addSupplierModal'));
+        modal.show();
+    }
+
+    function openProductModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

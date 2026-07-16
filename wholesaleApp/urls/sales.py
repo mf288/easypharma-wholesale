@@ -2,6 +2,8 @@ from django.urls import path
 from wholesaleApp.views.sales_views import (
     invoice_list,
     invoice_create,
+    invoice_edit,
+    invoice_delete,
     invoice_print,
     get_product_batches,
     get_product_last_purchase_rate
@@ -11,6 +13,8 @@ urlpatterns = [
     # Sales Invoicing
     path('sales/invoice/list/', invoice_list, name='invoice_list'),
     path('sales/invoice/create/', invoice_create, name='invoice_create'),
+    path('sales/invoice/<int:pk>/edit/', invoice_edit, name='invoice_edit'),
+    path('sales/invoice/<int:pk>/delete/', invoice_delete, name='invoice_delete'),
     path('sales/invoice/<int:pk>/print/', invoice_print, name='invoice_print'),
 
     # API batch/rate fetchers

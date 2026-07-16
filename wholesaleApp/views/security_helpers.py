@@ -63,6 +63,11 @@ def seed_default_permissions():
             ('purchase_create', 'New Purchase Entry'),
             ('purchase_list', 'View Purchase History'),
         ],
+        'Accounts & Collection': [
+            ('customer_ledger', 'View Customer Ledger'),
+            ('payment_collection', 'Record / Collect Payments'),
+            ('report_outstanding', 'View Outstanding dues report'),
+        ],
         'Master Data Settings': [
             ('product_crud', 'Manage Products (Add/Edit)'),
             ('customer_crud', 'Manage Customers (Add/Edit)'),

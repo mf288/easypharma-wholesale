@@ -139,7 +139,8 @@
                 <div class="small">
                     <strong>Invoice No:</strong> <span class="font-monospace fw-bold">{{ invoice.invoice_number }}</span><br>
                     <strong>Date:</strong> {{ invoice.invoice_date|date:"d-m-Y" }}<br>
-                    <strong>Payment status:</strong> <span class="fw-bold">{{ invoice.status }}</span>
+                    <strong>Payment Mode:</strong> <span class="fw-bold text-uppercase text-primary">{{ invoice.payment_type }}</span><br>
+                    <strong>Delivery Status:</strong> <span class="fw-bold">{{ invoice.status }}</span>
                 </div>
             </div>
         </div>

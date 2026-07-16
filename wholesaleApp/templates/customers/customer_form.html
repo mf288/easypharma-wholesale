@@ -17,11 +17,18 @@
                     
                     <div class="row g-4">
                         <!-- Basic Info -->
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Customer Name <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control" value="{{ customer.name|default:'' }}" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label">Customer Type <span class="text-danger">*</span></label>
+                            <select name="customer_type" class="form-select" required>
+                                <option value="Retailer" {% if customer.customer_type == 'Retailer' %}selected{% endif %}>Retailer / Chemist</option>
+                                <option value="Wholesaler" {% if customer.customer_type == 'Wholesaler' %}selected{% endif %}>Wholesaler / Sub-distributor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Mobile <span class="text-danger">*</span></label>
                             <input type="text" name="mobile" class="form-control" value="{{ customer.mobile|default:'' }}" required>
                         </div>

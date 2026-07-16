@@ -116,15 +116,22 @@
                         <ul class="combobox-menu shadow-sm"></ul>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label text-muted small fw-bold">Supplier Invoice No <span class="text-danger">*</span></label>
                     <input type="text" name="invoice_number" id="invoiceNumber" class="form-control" placeholder="e.g., INV-9874" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label text-muted small fw-bold">Invoice Date <span class="text-danger">*</span></label>
                     <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{% now 'Y-m-d' %}" required>
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">Payment Type <span class="text-danger">*</span></label>
+                    <select name="payment_type" id="paymentType" class="form-select" required>
+                        <option value="Credit" selected>Credit (Accounts Payable)</option>
+                        <option value="Cash">Cash (Immediate Paid)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label text-muted small fw-bold">Entry Date</label>
                     <input type="text" class="form-control bg-light" value="{% now 'Y-m-d' %} (Today)" readonly>
                 </div>
@@ -137,16 +144,17 @@
                     <table class="table table-bordered align-middle" id="invoiceTable" style="min-width: 1200px;">
                         <thead class="table-light text-center">
                             <tr>
-                                <th style="width: 22%;">Product <span class="text-danger">*</span></th>
-                                <th style="width: 10%;">Batch No <span class="text-danger">*</span></th>
-                                <th style="width: 10%;">Expiry (MM/YY) <span class="text-danger">*</span></th>
-                                <th style="width: 8%;">MRP (₹) <span class="text-danger">*</span></th>
-                                <th style="width: 8%;">P-Rate (₹) <span class="text-danger">*</span></th>
-                                <th style="width: 8%;">S-Rate (₹) <span class="text-danger">*</span></th>
-                                <th style="width: 7%;">Qty <span class="text-danger">*</span></th>
-                                <th style="width: 6%;">Free</th>
-                                <th style="width: 6%;">GST %</th>
-                                <th style="width: 6%;">Disc %</th>
+                                <th style="width: 20%;">Product <span class="text-danger">*</span></th>
+                                <th style="width: 9%;">Batch No <span class="text-danger">*</span></th>
+                                <th style="width: 9%;">Expiry (MM/YY) <span class="text-danger">*</span></th>
+                                <th style="width: 7%;">MRP (₹) <span class="text-danger">*</span></th>
+                                <th style="width: 7%;">P-Rate (₹) <span class="text-danger">*</span></th>
+                                <th style="width: 7%;">S-Rate (₹) <span class="text-danger">*</span></th>
+                                <th style="width: 7%;">W-Rate (₹) <span class="text-danger">*</span></th>
+                                <th style="width: 6%;">Qty <span class="text-danger">*</span></th>
+                                <th style="width: 5%;">Free</th>
+                                <th style="width: 5%;">GST %</th>
+                                <th style="width: 5%;">Disc %</th>
                                 <th style="width: 10%;">Total Amount</th>
                                 <th style="width: 4%;"></th>
                             </tr>
@@ -162,44 +170,7 @@
                 </button>
             </div>
 
-            <!-- Live Margin & Expiry Inspector Panel (USP Feature) -->
-            {% if user.is_superuser or 'view_margins' in user_perms %}
-            <div class="row mt-2 g-3 p-3 bg-light rounded-4 mb-4">
-                <div class="col-md-8">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-indigo-subtle text-indigo p-2 fs-6" style="background-color: #e0e7ff; color: #4338ca;">
-                            <i class="bi bi-percent"></i> Live Margin Guard
-                        </span>
-                        <span class="text-muted small">Select a product and enter rates to view profit margins instantly.</span>
-                    </div>
-                    <div class="row mt-3 text-center">
-                        <div class="col-6 col-sm-3 border-end">
-                            <div class="text-muted small">Wholesaler Profit</div>
-                            <h4 class="fw-bold text-success mb-0" id="liveStockistMargin">₹0.00 (0.0%)</h4>
-                        </div>
-                        <div class="col-6 col-sm-3 border-end">
-                            <div class="text-muted small">Retailer Profit</div>
-                            <h4 class="fw-bold text-indigo mb-0" id="liveRetailerMargin">₹0.00 (0.0%)</h4>
-                        </div>
-                        <div class="col-6 col-sm-3 border-end">
-                            <div class="text-muted small">Last Purchase Rate</div>
-                            <h4 class="fw-bold text-secondary mb-0" id="liveLastPRate">₹0.00</h4>
-                        </div>
-                        <div class="col-6 col-sm-3">
-                            <div class="text-muted small">Current Margin Loss</div>
-                            <h4 class="fw-bold text-danger mb-0" id="liveMarginLoss">₹0.00</h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 border-start">
-                    <div class="h-100 d-flex flex-column justify-content-center ps-md-3">
-                        <div id="priceAlertText" class="text-muted small alert alert-warning d-none py-2 px-3 rounded-3 mb-0">
-                            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> Price is higher than last bought!
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+            <!-- Live Margin panel removed -->
 
             <!-- Invoice Summaries -->
             <div class="row justify-content-end mb-4 border-top pt-4">
@@ -211,9 +182,10 @@
                             <input type="hidden" name="gross_amount" id="inputGross" value="0.00">
                         </tr>
                         <tr>
-                            <td class="text-muted">Total Discount:</td>
-                            <td class="text-end text-danger fw-semibold">-₹<span id="summaryDiscount">0.00</span></td>
-                            <input type="hidden" name="discount_amount" id="inputDiscount" value="0.00">
+                            <td class="text-muted">Bill Discount (₹):</td>
+                            <td class="text-end text-danger fw-semibold">
+                                <input type="number" name="discount_amount" id="inputDiscount" class="form-control form-control-sm text-end d-inline-block" style="width: 120px;" step="0.01" min="0" value="0.00" oninput="recalculateInvoiceSummary()">
+                            </td>
                         </tr>
                         <tr>
                             <td class="text-muted">Total GST Tax:</td>
@@ -484,8 +456,12 @@
                 });
             } else {
                 const li = document.createElement("li");
-                li.className = "text-muted p-3 text-center small";
-                li.textContent = "No matches found";
+                li.className = "text-primary text-center p-3 cursor-pointer small";
+                li.innerHTML = `<i class="bi bi-plus-circle"></i> No matches found. Click to Add!`;
+                li.addEventListener("click", () => {
+                    menu.style.display = "none";
+                    if (onAddCallback) onAddCallback();
+                });
                 menu.appendChild(li);
             }
 
@@ -545,6 +521,9 @@
                 </td>
                 <td>
                     <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required oninput="updateLiveMarginInspect(${rowId})">
+                </td>
+                <td>
+                    <input type="number" name="wholesale_rate[]" class="form-control text-end wrate-input" step="0.01" min="0" placeholder="0.00">
                 </td>
                 <td>
                     <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="1" required oninput="calculateRowTotals(${rowId})">
@@ -682,26 +661,27 @@
 
     function recalculateInvoiceSummary() {
         let grossTaxableTotal = 0;
-        let discountTotal = 0;
         let gstTotal = 0;
-        let netPayable = 0;
         
         document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
             grossTaxableTotal += parseFloat(row.dataset.taxable) || 0;
-            discountTotal += parseFloat(row.dataset.discount) || 0;
             gstTotal += parseFloat(row.dataset.gst) || 0;
-            netPayable += parseFloat(row.dataset.total) || 0;
         });
         
+        const flatDiscount = parseFloat(document.getElementById("inputDiscount").value) || 0;
+        const netPayable = grossTaxableTotal + gstTotal - flatDiscount;
+        
         document.getElementById("summaryGross").textContent = grossTaxableTotal.toFixed(2);
-        document.getElementById("summaryDiscount").textContent = discountTotal.toFixed(2);
         document.getElementById("summaryGst").textContent = gstTotal.toFixed(2);
         document.getElementById("summaryNet").textContent = netPayable.toFixed(2);
         
         document.getElementById("inputGross").value = grossTaxableTotal.toFixed(2);
-        document.getElementById("inputDiscount").value = discountTotal.toFixed(2);
         document.getElementById("inputGst").value = gstTotal.toFixed(2);
         document.getElementById("inputNet").value = netPayable.toFixed(2);
+    }
+
+    function updateLiveMarginInspect(id) {
+        // Disabled
     }
 
     // ==================== KEYBOARD NAVIGATION & VALIDATION ====================

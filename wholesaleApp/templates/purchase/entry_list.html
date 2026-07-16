@@ -25,6 +25,7 @@
                     <th>GST Total</th>
                     <th>Net Amount Payable</th>
                     <th>Recorded Date</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -38,10 +39,20 @@
                     <td class="text-success">+₹{{ entry.gst_amount|floatformat:2 }}</td>
                     <td class="fw-bold text-primary">₹{{ entry.net_amount|floatformat:2 }}</td>
                     <td>{{ entry.entry_date }}</td>
+                    <td class="text-center">
+                        <div class="d-flex gap-1 justify-content-center">
+                            <a href="{% url 'purchase_entry_edit' entry.id %}" class="btn btn-sm btn-outline-warning rounded-pill px-3" title="Edit Bill">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <a href="{% url 'purchase_entry_delete' entry.id %}" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Cancel/Delete Bill" onclick="return confirm('Are you sure you want to cancel and delete this purchase entry? This will deduct the received stock levels and revert the supplier outstanding balance.');">
+                                <i class="bi bi-trash"></i> Cancel
+                            </a>
+                        </div>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center py-5 text-muted">
+                    <td colspan="9" class="text-center py-5 text-muted">
                         <i class="bi bi-receipt fs-2 d-block mb-2"></i>
                         No supplier invoices entered yet. Click "Add Purchase Entry" to receive goods.
                     </td>

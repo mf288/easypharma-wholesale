@@ -1,0 +1,321 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #ledgerPrintArea, #ledgerPrintArea * {
+            visibility: visible;
+        }
+        #ledgerPrintArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+
+<div class="row g-4">
+    <!-- Top Selector Card -->
+    <div class="col-12 no-print">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4">
+                <form method="GET" action="{% url 'customer_ledger' %}" class="row align-items-end g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold">Select Customer (Chemist / Wholesaler) <span class="text-danger">*</span></label>
+                        <select name="customer" id="customerSelect" class="form-select" onchange="this.form.submit()" required>
+                            <option value="">-- Choose Customer --</option>
+                            {% for cust in customers %}
+                                <option value="{{ cust.id }}" {% if customer and customer.id == cust.id %}selected{% endif %}>
+                                    {{ cust.name }} ({{ cust.city }} - {{ cust.mobile }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label text-muted small fw-bold">From Date</label>
+                        <input type="date" name="from_date" class="form-control" value="{{ from_date|default:'' }}">
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label text-muted small fw-bold">To Date</label>
+                        <input type="date" name="to_date" class="form-control" value="{{ to_date|default:'' }}">
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary rounded-pill px-3 flex-grow-1">
+                            <i class="bi bi-funnel-fill"></i> Filter
+                        </button>
+                        {% if from_date or to_date %}
+                        <a href="{% url 'customer_ledger' %}?customer={{ customer.id }}" class="btn btn-outline-secondary rounded-pill px-3">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if customer %}
+    <!-- Customer Details & Summary Cards -->
+    <div id="ledgerPrintArea" class="col-12">
+        <div class="row g-4">
+            <!-- Details Card -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 rounded-4 h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-primary-subtle text-primary rounded-circle p-3 me-3" style="background-color: #e0e7ff; color: #4f46e5;">
+                                <i class="bi bi-person-badge fs-3"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-1 text-dark">{{ customer.name }}</h5>
+                                <span class="badge bg-light text-dark border px-2 py-1 rounded-pill">
+                                    {{ customer.customer_type }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <table class="table table-sm table-borderless align-middle mb-4" style="font-size: 0.9rem;">
+                            <tr>
+                                <td class="text-muted py-1.5"><i class="bi bi-telephone me-2"></i>Mobile:</td>
+                                <td class="fw-semibold text-dark py-1.5">{{ customer.mobile }}</td>
+                            </tr>
+                            {% if customer.email %}
+                            <tr>
+                                <td class="text-muted py-1.5"><i class="bi bi-envelope me-2"></i>Email:</td>
+                                <td class="text-dark py-1.5">{{ customer.email }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td class="text-muted py-1.5"><i class="bi bi-geo-alt me-2"></i>City/State:</td>
+                                <td class="text-dark py-1.5">{{ customer.city }}, {{ customer.state }}</td>
+                            </tr>
+                            {% if customer.gstin %}
+                            <tr>
+                                <td class="text-muted py-1.5"><i class="bi bi-hash me-2"></i>GSTIN:</td>
+                                <td class="font-monospace fw-semibold text-dark py-1.5">{{ customer.gstin }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if customer.dl_number_1 %}
+                            <tr>
+                                <td class="text-muted py-1.5"><i class="bi bi-file-medical me-2"></i>DL No. 1:</td>
+                                <td class="font-monospace text-dark py-1.5">{{ customer.dl_number_1 }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+
+                        <hr>
+
+                        <div class="row g-2 mt-2">
+                            <div class="col-6">
+                                <div class="bg-light p-3 rounded-3 border text-center">
+                                    <div class="text-muted small mb-1">Credit Limit</div>
+                                    <h6 class="fw-bold text-dark mb-0">₹{{ customer.credit_limit|floatformat:2 }}</h6>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light p-3 rounded-3 border text-center">
+                                    <div class="text-muted small mb-1">Credit Days</div>
+                                    <h6 class="fw-bold text-dark mb-0">{{ customer.credit_days }} Days</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ledger Report Card -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 rounded-4 h-100">
+                    <div class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-journal-text text-primary me-2"></i>Transaction Ledger</h5>
+                        <div class="d-flex gap-2 no-print">
+                            <button type="button" class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#paymentModal">
+                                <i class="bi bi-plus-circle me-1"></i> Record Payment
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="window.print()">
+                                <i class="bi bi-printer me-1"></i> Print Ledger
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body px-4 pb-4">
+                        <!-- Summary Cards -->
+                        <div class="row g-3 mb-4 mt-1">
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 text-center border-0" style="background-color: #eff6ff; color: #1e40af;">
+                                    <div class="small fw-semibold mb-1 opacity-75">Total Credit Sales</div>
+                                    <h5 class="fw-bold mb-0">₹{{ total_debit|floatformat:2 }}</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 text-center border-0" style="background-color: #f0fdf4; color: #166534;">
+                                    <div class="small fw-semibold mb-1 opacity-75">Total Paid / Received</div>
+                                    <h5 class="fw-bold mb-0">₹{{ total_credit|floatformat:2 }}</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 text-center border-0 {% if customer.opening_balance > 0 %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}" style="padding: 1rem; border-radius: 8px;">
+                                    <div class="small fw-semibold mb-1 opacity-75">Net Outstanding</div>
+                                    <h5 class="fw-bold mb-0">₹{{ customer.opening_balance|floatformat:2 }}</h5>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ledger Table -->
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 12%;">Date</th>
+                                        <th style="width: 25%;">Particulars</th>
+                                        <th style="width: 18%;">Voucher No / Ref</th>
+                                        <th class="text-end" style="width: 14%;">Debit (Dr)</th>
+                                        <th class="text-end" style="width: 14%;">Credit (Cr)</th>
+                                        <th class="text-end" style="width: 17%;">Running Balance</th>
+                                        <th class="text-center no-print" style="width: 10%;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Opening balance row -->
+                                    <tr class="table-info-subtle" style="background-color: #f0f9ff;">
+                                        <td colspan="3"><strong>Opening Balance</strong></td>
+                                        <td class="text-end">-</td>
+                                        <td class="text-end">-</td>
+                                        <td class="text-end fw-bold text-dark">₹{{ initial_balance|floatformat:2 }}</td>
+                                        <td class="no-print"></td>
+                                    </tr>
+
+                                    {% for entry in ledger_entries %}
+                                    <tr>
+                                        <td>{{ entry.date|date:"d-m-Y" }}</td>
+                                        <td>
+                                            {% if entry.is_payment %}
+                                                <span class="text-success"><i class="bi bi-arrow-down-left-circle-fill me-1"></i> {{ entry.type }}</span>
+                                            {% else %}
+                                                <span class="text-primary"><i class="bi bi-arrow-up-right-circle-fill me-1"></i> {{ entry.type }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if entry.url %}
+                                                <a href="{{ entry.url }}" target="_blank" class="font-monospace fw-bold text-decoration-none">
+                                                    {{ entry.number }}
+                                                </a>
+                                            {% else %}
+                                                <span class="font-monospace">{{ entry.number }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end text-primary">
+                                            {% if entry.debit > 0 %}
+                                                ₹{{ entry.debit|floatformat:2 }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end text-success">
+                                            {% if entry.credit > 0 %}
+                                                ₹{{ entry.credit|floatformat:2 }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end fw-semibold text-dark">
+                                            ₹{{ entry.running_balance|floatformat:2 }}
+                                        </td>
+                                        <td class="text-center no-print">
+                                            {% if entry.is_payment %}
+                                                <a href="{% url 'customer_payment_delete' entry.id %}" class="btn btn-sm btn-link text-danger p-0" title="Delete Payment" onclick="return confirm('Are you sure you want to delete this payment? Customer outstanding balance will increase by this amount.')">
+                                                    <i class="bi bi-trash fs-5"></i>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4 text-muted">
+                                            No ledger transactions recorded in this period.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div class="modal fade no-print" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow border-0">
+                <div class="modal-header border-bottom-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold" id="paymentModalLabel"><i class="bi bi-wallet2 text-success me-2"></i>Record Payment (जमा करें)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{% url 'customer_payment_add' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="customer" value="{{ customer.id }}">
+                    <div class="modal-body px-4 py-3">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">Customer Name</label>
+                            <input type="text" class="form-control bg-light" value="{{ customer.name }}" readonly>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-muted small fw-bold">Payment Date <span class="text-danger">*</span></label>
+                                <input type="date" name="payment_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-muted small fw-bold">Amount (₹) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" min="0.01" name="amount" class="form-control fw-bold text-success" placeholder="0.00" required>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-muted small fw-bold">Payment Mode <span class="text-danger">*</span></label>
+                                <select name="payment_mode" class="form-select" required>
+                                    <option value="Cash" selected>Cash</option>
+                                    <option value="Bank">Bank Transfer</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-muted small fw-bold">Transaction / Ref No.</label>
+                                <input type="text" name="reference_no" class="form-control font-monospace" placeholder="Optional">
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label text-muted small fw-bold">Remarks / Narration</label>
+                            <textarea name="remarks" class="form-control" rows="2" placeholder="Write remarks here..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 pb-4 px-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4">
+                            <i class="bi bi-check-circle me-1"></i> Save Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5 text-muted no-print">
+        <i class="bi bi-wallet2 fs-1 d-block mb-3 opacity-50"></i>
+        <h5>Please select a customer above to view their running account ledger and record payments.</h5>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

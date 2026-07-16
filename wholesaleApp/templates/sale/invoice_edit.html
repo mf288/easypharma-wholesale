@@ -1,0 +1,962 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-pencil-square text-primary"></i> {{ page_title }}</h5>
+                <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <!-- Invoice Header Info -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Customer (Chemist / Hospital) <span class="text-danger">*</span></label>
+                            <div class="combobox-container">
+                                <input type="text" id="customerSearch" class="form-control combobox-input" placeholder="Type Chemist Name..." required value="{{ invoice.customer.name }} ({{ invoice.customer.city }})">
+                                <input type="hidden" name="customer" id="customerSelect" class="combobox-hidden-value" required value="{{ invoice.customer.id }}" data-type="{{ invoice.customer.customer_type }}">
+                                <ul class="combobox-menu shadow-sm"></ul>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Invoice Date <span class="text-danger">*</span></label>
+                            <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{{ invoice.invoice_date|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Payment Type <span class="text-danger">*</span></label>
+                            <select name="payment_type" id="paymentType" class="form-select" required>
+                                <option value="Cash" {% if invoice.payment_type == 'Cash' %}selected{% endif %}>Cash (Immediate Paid)</option>
+                                <option value="Credit" {% if invoice.payment_type == 'Credit' %}selected{% endif %}>Credit (Debtors)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Billing Operator</label>
+                            <input type="text" class="form-control bg-light" value="{{ invoice.created_by.username|default:'Admin' }} (Online)" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Items Table Section -->
+                    <div class="border-top pt-4">
+                        <h5 class="mb-3 fw-bold text-dark">Invoice Items</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle" id="invoiceTable" style="min-width: 1250px;">
+                                <thead class="table-light text-center">
+                                    <tr>
+                                        <th style="width: 22%;">Product Name <span class="text-danger">*</span></th>
+                                        <th style="width: 15%;">Batch No <span class="text-danger">*</span></th>
+                                        <th style="width: 10%;">Expiry</th>
+                                        <th style="width: 8%;">MRP (₹)</th>
+                                        <th style="width: 9%;">S-Rate (₹) <span class="text-danger">*</span></th>
+                                        <th style="width: 7%;">Qty <span class="text-danger">*</span></th>
+                                        <th style="width: 6%;">Free Qty</th>
+                                        <th style="width: 6%;">GST %</th>
+                                        <th style="width: 7%;">Disc %</th>
+                                        <th style="width: 10%;">Total Amount (₹)</th>
+                                        <th style="width: 4%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic invoice items will go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <button type="button" class="btn btn-outline-primary rounded-pill px-4" onclick="addNewInvoiceRow()">
+                                <i class="bi bi-plus-circle"></i> Add Row
+                            </button>
+                            <div class="text-muted small">
+                                Tip: Use <kbd>Tab</kbd> key to navigate between inputs quickly.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculation Summary Panel -->
+                    <div class="row justify-content-end mt-5">
+                        <div class="col-md-5">
+                            <div class="bg-light p-4 rounded-4 border">
+                                <table class="table table-borderless mb-0 align-middle">
+                                    <tr>
+                                        <td class="text-muted py-2">Gross Subtotal:</td>
+                                        <td class="text-end fw-semibold py-2">
+                                            <input type="hidden" name="gross_amount" id="grossAmountInput" value="{{ invoice.gross_amount }}">
+                                            <span id="grossAmount">₹{{ invoice.gross_amount|floatformat:2 }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted py-2">Total Scheme Discount:</td>
+                                        <td class="text-end text-danger fw-semibold py-2">
+                                            <input type="hidden" name="discount_amount" id="discountAmountInput" value="{{ invoice.discount_amount }}">
+                                            <span id="discountAmount">-₹{{ invoice.discount_amount|floatformat:2 }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom pb-2">
+                                        <td class="text-muted py-2">GST Tax Total:</td>
+                                        <td class="text-end text-success fw-semibold py-2">
+                                            <input type="hidden" name="gst_amount" id="gstAmountInput" value="{{ invoice.gst_amount }}">
+                                            <span id="gstAmount">+₹{{ invoice.gst_amount|floatformat:2 }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="fs-5 fw-bold">
+                                        <td class="text-dark py-3">Net Payable Amount:</td>
+                                        <td class="text-end text-primary py-3">
+                                            <input type="hidden" name="net_amount" id="netAmountInput" value="{{ invoice.net_amount }}">
+                                            <span id="netAmount" class="fs-4 text-primary fw-bold">₹{{ invoice.net_amount|floatformat:2 }}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <div class="mt-4 d-flex gap-2 justify-content-end">
+                                <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary btn-lg px-4 rounded-pill">Cancel Changes</a>
+                                <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm" onclick="return validateInvoiceForm()">
+                                    <i class="bi bi-check-circle"></i> Save Invoice
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Live Margins Inspector Tool (SaaS USP) -->
+<div class="position-fixed bottom-0 end-0 m-4 shadow-lg border rounded-3 overflow-hidden d-none d-md-block" style="width: 280px; z-index: 1050; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);">
+    <div class="bg-primary text-white p-2.5 d-flex justify-content-between align-items-center">
+        <span class="small fw-bold"><i class="bi bi-graph-up-arrow"></i> Real-time Invoice Profit Inspector</span>
+    </div>
+    <div class="p-3 fs-9">
+        <div class="d-flex justify-content-between border-bottom pb-1.5 mb-1.5 text-dark">
+            <span class="text-muted">Stockist Margin:</span>
+            <span id="liveStockistMargin" class="fw-bold">₹0.00 (0.0%)</span>
+        </div>
+        <div class="d-flex justify-content-between border-bottom pb-1.5 mb-1.5 text-dark">
+            <span class="text-muted">Chemist Margin (from MRP):</span>
+            <span id="liveRetailerMargin" class="fw-bold">₹0.00 (0.0%)</span>
+        </div>
+        <div class="d-flex justify-content-between text-dark">
+            <span class="text-muted">Calculated Taxable sum:</span>
+            <span class="fw-bold">₹<span id="liveTaxableInspect">0.00</span></span>
+        </div>
+        <div class="d-flex justify-content-between text-dark">
+            <span class="text-muted">Calculated GST sum:</span>
+            <span class="fw-bold">₹<span id="liveGstInspect">0.00</span></span>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== DIALOG MODALS ==================== -->
+<!-- Quick Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Quick Add Retailer / Chemist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="quickCustomerForm">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Shop / Chemist Name <span class="text-danger">*</span></label>
+                            <input type="text" id="custName" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Customer Type <span class="text-danger">*</span></label>
+                            <select id="custType" class="form-select" required>
+                                <option value="Retailer">Retailer / Chemist</option>
+                                <option value="Wholesaler">Wholesaler / Sub-distributor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                            <input type="text" id="custMobile" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">State</label>
+                            <input type="text" id="custState" class="form-control" value="Maharashtra">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Area (Location City) <span class="text-danger">*</span></label>
+                            <select id="custArea" class="form-select" required>
+                                <option value="">Select Area</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Full Bill Address</label>
+                            <textarea id="custAddress" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Quick Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="quickProductForm">
+                <div class="modal-body">
+                    <input type="hidden" id="activeRowId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Product Name / Brand <span class="text-danger">*</span></label>
+                            <input type="text" id="prodName" class="form-control" placeholder="e.g. Dolo 650mg" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pack size <span class="text-danger">*</span></label>
+                            <input type="text" id="prodPack" class="form-control" placeholder="e.g. 15 Tab" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">GST Tax Rate <span class="text-danger">*</span></label>
+                            <select id="prodGst" class="form-select" required>
+                                <option value="12.00">12%</option>
+                                <option value="18.00">18%</option>
+                                <option value="5.00">5%</option>
+                                <option value="0.00">0% (Tax Exempt)</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Company Manufacturer <span class="text-danger">*</span></label>
+                            <select id="prodCompany" class="form-select" required>
+                                <option value="">Select Company</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Product Category Type <span class="text-danger">*</span></label>
+                            <select id="prodType" class="form-select" required>
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Scheme Qty (Buy X)</label>
+                            <input type="number" id="prodSchemeQty" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Scheme Free (Get Y Free)</label>
+                            <input type="number" id="prodSchemeFree" class="form-control" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global datasets
+    const customerList = [
+        {% for customer in customers %}
+        { id: "{{ customer.id }}", name: "{{ customer.name }} ({{ customer.city }})", type: "{{ customer.customer_type }}" },
+        {% endfor %}
+    ];
+
+    const productCatalog = {
+        {% for product in products %}
+        "{{ product.id }}": {
+            name: "{{ product.name }}",
+            pack: "{{ product.pack_size }}",
+            gst: parseFloat("{{ product.gst_rate }}"),
+            schemeQty: parseInt("{{ product.scheme_qty|default:0 }}"),
+            schemeFree: parseInt("{{ product.scheme_free|default:0 }}")
+        },
+        {% endfor %}
+    };
+
+    const productList = Object.entries(productCatalog).map(([id, prod]) => ({
+        id: id,
+        name: prod.name,
+        pack: prod.pack
+    }));
+
+    // Inject existing items in edit mode
+    const existingItems = [
+        {% for item in invoice.items.all %}
+        {
+            productId: "{{ item.product.id }}",
+            productName: "{{ item.product.name }} ({{ item.product.pack_size }})",
+            batchId: "{{ item.batch.id }}",
+            batchNumber: "{{ item.batch.batch_number }}",
+            expiryMask: "{{ item.batch.expiry_date|date:'m/y' }}",
+            mrpReal: "{{ item.batch.mrp }}",
+            saleRate: "{{ item.sale_rate }}",
+            quantity: "{{ item.quantity }}",
+            freeQuantity: "{{ item.free_quantity }}",
+            discountPercentage: "{{ item.discount_percentage }}",
+            totalAmount: "{{ item.total_amount }}",
+            gstRate: "{{ item.product.gst_rate }}"
+        },
+        {% endfor %}
+    ];
+
+    // ==================== PREMIUM COMBOBOX ENGINE ====================
+    function setupCombobox(inputEl, dataset, onSelectCallback, onAddCallback) {
+        const container = inputEl.closest(".combobox-container");
+        const menu = container.querySelector(".combobox-menu");
+        const hiddenInput = container.querySelector(".combobox-hidden-value");
+
+        function renderMenu(items) {
+            menu.innerHTML = "";
+            if (items.length === 0) {
+                const addLi = document.createElement("li");
+                addLi.className = "text-primary text-center py-2 border-top bg-light cursor-pointer small";
+                addLi.innerHTML = `<i class="bi bi-plus-circle"></i> Item not found. Click to Add!`;
+                addLi.onclick = () => {
+                    menu.classList.remove("show");
+                    onAddCallback();
+                };
+                menu.appendChild(addLi);
+            } else {
+                items.slice(0, 15).forEach(item => {
+                    const li = document.createElement("li");
+                    li.textContent = item.name;
+                    li.className = "dropdown-item cursor-pointer py-2";
+                    li.onclick = () => {
+                        inputEl.value = item.name;
+                        hiddenInput.value = item.id;
+                        menu.classList.remove("show");
+                        onSelectCallback(item.id);
+                        
+                        // Tab trigger logic
+                        focusNextInput(inputEl);
+                    };
+                    menu.appendChild(li);
+                });
+            }
+            menu.classList.add("show");
+        }
+
+        inputEl.addEventListener("input", function() {
+            hiddenInput.value = "";
+            const query = this.value.toLowerCase().trim();
+            if (!query) {
+                menu.classList.remove("show");
+                return;
+            }
+            const filtered = dataset.filter(item => item.name.toLowerCase().includes(query));
+            renderMenu(filtered);
+        });
+
+        // Hide when clicking outside
+        document.addEventListener("click", function(e) {
+            if (!container.contains(e.target)) {
+                menu.classList.remove("show");
+            }
+        });
+
+        // Show menu on focus if value exists
+        inputEl.addEventListener("focus", function() {
+            if (this.value) {
+                const query = this.value.toLowerCase().trim();
+                const filtered = dataset.filter(item => item.name.toLowerCase().includes(query));
+                renderMenu(filtered);
+            }
+        });
+    }
+
+    function focusNextInput(currentEl) {
+        const focusable = Array.from(document.querySelectorAll('input:not([readonly]):not([type="hidden"]), select, button[type="submit"]'));
+        const index = focusable.indexOf(currentEl);
+        if (index > -1) {
+            const nextEl = focusable[index + 1];
+            if (nextEl) {
+                nextEl.focus();
+                if (nextEl.select) nextEl.select();
+            }
+        }
+    }
+
+    // ==================== INVOICE ROW BUILDER ====================
+    function addNewInvoiceRow() {
+        const tableBody = document.querySelector("#invoiceTable tbody");
+        const rowId = tableBody.children.length;
+
+        const rowHTML = `
+            <tr id="item-row-${rowId}">
+                <td>
+                    <div class="combobox-container">
+                        <input type="text" class="form-control combobox-input product-search-input" placeholder="Type Medicine..." required>
+                        <input type="hidden" name="product[]" class="select-product combobox-hidden-value" required>
+                        <ul class="combobox-menu shadow-sm"></ul>
+                    </div>
+                </td>
+                <td>
+                    <select name="batch[]" class="form-select select-batch" onchange="onBatchSelect(${rowId})" required>
+                        <option value="">Select Batch</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light expiry-display" placeholder="MM/YY" readonly>
+                </td>
+                <td>
+                    <input type="text" class="form-control text-end bg-light mrp-display" placeholder="0.00" readonly>
+                </td>
+                <td>
+                    <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="1" required oninput="calculateRowTotals(${rowId}); applyProductScheme(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="number" name="free_quantity[]" class="form-control text-center free-input" min="0" value="0" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light gst-display" value="12%" readonly>
+                    <input type="hidden" class="gst-input" value="12.00">
+                </td>
+                <td>
+                    <input type="number" name="discount_percentage[]" class="form-control text-center disc-input" step="0.01" min="0" max="100" value="0.00" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td class="text-end fw-semibold">
+                    ₹<span class="row-total">0.00</span>
+                    <input type="hidden" name="total_amount[]" class="row-total-input" value="0.00">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItemRow(${rowId})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', rowHTML);
+
+        // Bind Searchable Combobox
+        const row = document.getElementById(`item-row-${rowId}`);
+        const productSearchInput = row.querySelector(".product-search-input");
+        setupCombobox(
+            productSearchInput, 
+            productList, 
+            (id) => onProductSelect(rowId, id),
+            () => openProductModal(rowId)
+        );
+    }
+
+    function addExistingInvoiceRow(item) {
+        const tableBody = document.querySelector("#invoiceTable tbody");
+        const rowId = tableBody.children.length;
+
+        const rowHTML = `
+            <tr id="item-row-${rowId}">
+                <td>
+                    <div class="combobox-container">
+                        <input type="text" class="form-control combobox-input product-search-input" placeholder="Type Medicine..." required value="${item.productName}">
+                        <input type="hidden" name="product[]" class="select-product combobox-hidden-value" required value="${item.productId}">
+                        <ul class="combobox-menu shadow-sm"></ul>
+                    </div>
+                </td>
+                <td>
+                    <select name="batch[]" class="form-select select-batch" onchange="onBatchSelect(${rowId})" required>
+                        <option value="${item.batchId}" data-mrp="${item.mrpReal}" data-srate="${item.saleRate}" data-exp="${item.expiryMask}" selected>${item.batchNumber} (Exp: ${item.expiryMask})</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light expiry-display" placeholder="MM/YY" readonly value="${item.expiryMask}">
+                </td>
+                <td>
+                    <input type="text" class="form-control text-end bg-light mrp-display" placeholder="0.00" readonly value="${parseFloat(item.mrpReal).toFixed(2)}">
+                </td>
+                <td>
+                    <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.saleRate).toFixed(2)}" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="${item.quantity}" required oninput="calculateRowTotals(${rowId}); applyProductScheme(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="number" name="free_quantity[]" class="form-control text-center free-input" min="0" value="${item.freeQuantity}" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td>
+                    <input type="text" class="form-control text-center bg-light gst-display" value="${parseFloat(item.gstRate)}%" readonly>
+                    <input type="hidden" class="gst-input" value="${parseFloat(item.gstRate)}">
+                </td>
+                <td>
+                    <input type="number" name="discount_percentage[]" class="form-control text-center disc-input" step="0.01" min="0" max="100" value="${parseFloat(item.discountPercentage).toFixed(2)}" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
+                </td>
+                <td class="text-end fw-semibold">
+                    ₹<span class="row-total">${parseFloat(item.totalAmount).toFixed(2)}</span>
+                    <input type="hidden" name="total_amount[]" class="row-total-input" value="${parseFloat(item.totalAmount).toFixed(2)}">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItemRow(${rowId})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', rowHTML);
+
+        // Bind Searchable Combobox
+        const row = document.getElementById(`item-row-${rowId}`);
+        const productSearchInput = row.querySelector(".product-search-input");
+        setupCombobox(
+            productSearchInput, 
+            productList, 
+            (id) => onProductSelect(rowId, id),
+            () => openProductModal(rowId)
+        );
+
+        // Fetch batches via AJAX for this product to populate other batches (but keep current selected)
+        fetch(`/api/product/${item.productId}/batches/`)
+            .then(res => res.json())
+            .then(batches => {
+                const batchSelect = row.querySelector(".select-batch");
+                let options = `<option value="">Select Batch</option>`;
+                batches.forEach(b => {
+                    const isSelected = b.id == item.batchId ? 'selected' : '';
+                    options += `<option value="${b.id}" data-mrp="${b.mrp}" data-srate="${b.sale_rate}" data-wholesalerate="${b.wholesale_rate}" data-exp="${b.expiry_mask}" data-stock="${b.quantity}" ${isSelected}>${b.batch_number} (Exp: ${b.expiry_mask}) [Stock: ${b.quantity}]</option>`;
+                });
+                batchSelect.innerHTML = options;
+                calculateRowTotals(rowId);
+            });
+    }
+
+    function removeItemRow(id) {
+        document.getElementById(`item-row-${id}`).remove();
+        recalculateInvoiceSummary();
+    }
+
+    // Live Margin Inspector (SaaS USP)
+    function updateLiveMarginInspect(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        if (!row) return;
+
+        const batchSelect = row.querySelector(".select-batch");
+        const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+
+        let purchaseRate = 0;
+        if (selectedOption && selectedOption.value) {
+            const batchId = selectedOption.value;
+        }
+
+        const mrp = parseFloat(row.querySelector(".mrp-display").value) || 0;
+        const srate = parseFloat(row.querySelector(".srate-input").value) || 0;
+        
+        const pRate = srate * 0.85;
+
+        // Calc Margin & Profit
+        const stockistProfit = srate - pRate;
+        const retailerProfit = mrp - srate;
+        
+        let stockistMargin = 0;
+        let retailerMargin = 0;
+        if (srate > 0) stockistMargin = (stockistProfit / srate) * 100;
+        if (mrp > 0) retailerMargin = (retailerProfit / mrp) * 100;
+
+        const stockistEl = document.getElementById("liveStockistMargin");
+        const retailerEl = document.getElementById("liveRetailerMargin");
+        const taxableInspectEl = document.getElementById("liveTaxableInspect");
+        const gstInspectEl = document.getElementById("liveGstInspect");
+
+        if (stockistEl) stockistEl.textContent = `₹${stockistProfit.toFixed(2)} (${stockistMargin.toFixed(1)}%)`;
+        if (retailerEl) retailerEl.textContent = `₹${retailerProfit.toFixed(2)} (${retailerMargin.toFixed(1)}%)`;
+        
+        let taxableSum = 0;
+        let gstSum = 0;
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(r => {
+            taxableSum += parseFloat(r.dataset.taxable) || 0;
+            gstSum += parseFloat(r.dataset.gst) || 0;
+        });
+        if (taxableInspectEl) taxableInspectEl.textContent = taxableSum.toFixed(2);
+        if (gstInspectEl) gstInspectEl.textContent = gstSum.toFixed(2);
+    }
+
+    function onProductSelect(id, selectedProdId) {
+        const row = document.getElementById(`item-row-${id}`);
+        const batchSelect = row.querySelector(".select-batch");
+        const gstInput = row.querySelector(".gst-input");
+        const gstDisplay = row.querySelector(".gst-display");
+        
+        row.querySelector(".expiry-display").value = "";
+        row.querySelector(".mrp-display").value = "";
+        row.querySelector(".srate-input").value = "";
+        row.querySelector(".qty-input").value = 1;
+        row.querySelector(".free-input").value = 0;
+        
+        if (!selectedProdId) {
+            batchSelect.innerHTML = `<option value="">Select Batch</option>`;
+            calculateRowTotals(id);
+            return;
+        }
+
+        const product = productCatalog[selectedProdId];
+        gstInput.value = product.gst;
+        gstDisplay.value = product.gst + "%";
+
+        // Fetch batches via AJAX
+        fetch(`/api/product/${selectedProdId}/batches/`)
+            .then(res => res.json())
+            .then(batches => {
+                let options = `<option value="">Select Batch</option>`;
+                batches.forEach(b => {
+                    options += `<option value="${b.id}" data-mrp="${b.mrp}" data-srate="${b.sale_rate}" data-wholesalerate="${b.wholesale_rate}" data-exp="${b.expiry_mask}" data-stock="${b.quantity}">${b.batch_number} (Exp: ${b.expiry_mask}) [Stock: ${b.quantity}]</option>`;
+                });
+                batchSelect.innerHTML = options;
+                
+                if (batches.length === 0) {
+                    showToast("No active stock batches found for this product!", "warning");
+                }
+            });
+    }
+
+    function onBatchSelect(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        const batchSelect = row.querySelector(".select-batch");
+        const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+        
+        if (selectedOption.value) {
+            row.querySelector(".expiry-display").value = selectedOption.dataset.exp;
+            row.querySelector(".mrp-display").value = parseFloat(selectedOption.dataset.mrp).toFixed(2);
+            
+            // Toggle rate based on customer type
+            const customerType = document.getElementById("customerSelect").dataset.type || 'Retailer';
+            let rate = 0;
+            if (customerType === 'Wholesaler') {
+                rate = parseFloat(selectedOption.dataset.wholesalerate) || 0;
+            } else {
+                rate = parseFloat(selectedOption.dataset.srate) || 0;
+            }
+            row.querySelector(".srate-input").value = rate.toFixed(2);
+        }
+        calculateRowTotals(id);
+        applyProductScheme(id);
+        updateLiveMarginInspect(id);
+    }
+
+    function updateAllRowPrices() {
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
+            const rowId = row.id.split("-").pop();
+            const batchSelect = row.querySelector(".select-batch");
+            if (batchSelect && batchSelect.value) {
+                onBatchSelect(rowId);
+            }
+        });
+    }
+
+    function applyProductScheme(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        const productId = row.querySelector(".select-product").value;
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        
+        if (productId && productCatalog[productId]) {
+            const product = productCatalog[productId];
+            if (product.schemeQty > 0 && product.schemeFree > 0) {
+                const freeCount = Math.floor(qty / product.schemeQty) * product.schemeFree;
+                row.querySelector(".free-input").value = freeCount;
+            }
+        }
+        calculateRowTotals(id);
+    }
+
+    // ==================== CALCULATION ENGINE ====================
+    function calculateRowTotals(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        if (!row) return;
+
+        const rate = parseFloat(row.querySelector(".srate-input").value) || 0;
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        const freeQty = parseInt(row.querySelector(".free-input").value) || 0;
+        const gstPct = parseFloat(row.querySelector(".gst-input").value) || 0;
+        const discPct = parseFloat(row.querySelector(".disc-input").value) || 0;
+
+        // Formula: Net Taxable = (Qty * Rate) - Discount
+        const baseAmount = qty * rate;
+        const discountAmount = baseAmount * (discPct / 100);
+        const taxableAmount = baseAmount - discountAmount;
+        
+        // GST tax calculated on the taxable amount
+        const gstAmount = taxableAmount * (gstPct / 100);
+        const totalRowAmount = taxableAmount + gstAmount;
+
+        // Update displays
+        row.querySelector(".row-total").textContent = totalRowAmount.toFixed(2);
+        row.querySelector(".row-total-input").value = totalRowAmount.toFixed(2);
+
+        // Cache parameters on data-attributes for live Margin Tool
+        row.dataset.taxable = taxableAmount.toFixed(4);
+        row.dataset.gst = gstAmount.toFixed(4);
+        row.dataset.discount = discountAmount.toFixed(4);
+
+        recalculateInvoiceSummary();
+    }
+
+    function recalculateInvoiceSummary() {
+        let grossSubtotal = 0;
+        let totalDiscount = 0;
+        let totalGst = 0;
+        let netPayable = 0;
+
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
+            const rowId = row.id.split("-").pop();
+            const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+            const rate = parseFloat(row.querySelector(".srate-input").value) || 0;
+            
+            grossSubtotal += (qty * rate);
+            totalDiscount += parseFloat(row.dataset.discount) || 0;
+            totalGst += parseFloat(row.dataset.gst) || 0;
+        });
+
+        netPayable = grossSubtotal - totalDiscount + totalGst;
+
+        // Apply to elements
+        document.getElementById("grossAmount").textContent = "₹" + grossSubtotal.toFixed(2);
+        document.getElementById("grossAmountInput").value = grossSubtotal.toFixed(2);
+
+        document.getElementById("discountAmount").textContent = "-₹" + totalDiscount.toFixed(2);
+        document.getElementById("discountAmountInput").value = totalDiscount.toFixed(2);
+
+        document.getElementById("gstAmount").textContent = "+₹" + totalGst.toFixed(2);
+        document.getElementById("gstAmountInput").value = totalGst.toFixed(2);
+
+        document.getElementById("netAmount").textContent = "₹" + netPayable.toFixed(2);
+        document.getElementById("netAmountInput").value = netPayable.toFixed(2);
+    }
+
+    // ==================== FORM VALIDATION & FLOW ====================
+    function validateInvoiceForm() {
+        const customer = document.getElementById("customerSelect").value;
+        if (!customer) {
+            showToast("Please select a chemist customer first.", "danger");
+            document.getElementById("customerSearch").focus();
+            return false;
+        }
+
+        const rows = document.querySelectorAll("#invoiceTable tbody tr");
+        if (rows.length === 0) {
+            showToast("Invoice must contain at least one item row.", "danger");
+            return false;
+        }
+
+        let isValid = true;
+        rows.forEach((row, idx) => {
+            const prod = row.querySelector(".select-product").value;
+            const batch = row.querySelector(".select-batch").value;
+            const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+            const rate = parseFloat(row.querySelector(".srate-input").value) || 0;
+
+            if (!prod) {
+                showToast("Product is missing on item row " + (idx + 1), "danger");
+                isValid = false;
+            }
+            if (!batch) {
+                showToast("Batch is missing on item row " + (idx + 1), "danger");
+                isValid = false;
+            }
+            if (qty <= 0) {
+                showToast("Quantity must be greater than 0 on row " + (idx + 1), "danger");
+                isValid = false;
+            }
+            if (rate < 0) {
+                showToast("Sale rate cannot be negative on row " + (idx + 1), "danger");
+                isValid = false;
+            }
+        });
+
+        return isValid;
+    }
+
+    window.onload = function() {
+        setupCombobox(
+            document.getElementById("customerSearch"),
+            customerList,
+            (id) => {
+                document.getElementById("customerSelect").value = id;
+                const selectedCust = customerList.find(c => c.id == id);
+                if (selectedCust) {
+                    document.getElementById("customerSelect").dataset.type = selectedCust.type;
+                    updateAllRowPrices();
+                }
+            },
+            () => openCustomerModal()
+        );
+
+        // Populate existing items if editing
+        if (existingItems && existingItems.length > 0) {
+            existingItems.forEach(item => {
+                addExistingInvoiceRow(item);
+            });
+        } else {
+            addNewInvoiceRow();
+        }
+
+        setTimeout(() => {
+            document.getElementById("customerSearch").focus();
+        }, 100);
+
+        // Fetch area drop options for modals
+        fetch('/area/list/')
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const areaSelect = document.getElementById("custArea");
+                
+                doc.querySelectorAll("table:first-of-type tbody tr").forEach(tr => {
+                    const idText = tr.querySelector("a") ? tr.querySelector("a").href.split('/').slice(-2)[0] : '';
+                    const city = tr.querySelector("td:first-child").textContent.trim();
+                    if (city && idText) {
+                        areaSelect.insertAdjacentHTML('beforeend', `<option value="${idText}">${city}</option>`);
+                    }
+                });
+            });
+
+        // Load Company & Product Type options for Add Product Modal
+        fetch('/product/create/')
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const compSelect = document.getElementById("prodCompany");
+                doc.querySelectorAll("select[name='company'] option").forEach(opt => {
+                    if (opt.value) compSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
+                });
+
+                const typeSelect = document.getElementById("prodType");
+                doc.querySelectorAll("select[name='product_type'] option").forEach(opt => {
+                    if (opt.value) typeSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
+                });
+            });
+    };
+
+    // Quick Add Customer Submission
+    document.getElementById("quickCustomerForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("custName").value;
+        const type = document.getElementById("custType").value;
+        const mobile = document.getElementById("custMobile").value;
+        const areaId = document.getElementById("custArea").value;
+        const state = document.getElementById("custState").value;
+        const address = document.getElementById("custAddress").value;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("customer_type", type);
+        formData.append("mobile", mobile);
+        formData.append("area", areaId);
+        formData.append("state", state);
+        formData.append("address", address);
+
+        fetch("/customer/create/?json=true", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                customerList.push({ id: data.id, name: data.name + ` (${data.city})`, type: data.customer_type });
+                
+                document.getElementById("customerSelect").value = data.id;
+                document.getElementById("customerSelect").dataset.type = data.customer_type;
+                document.getElementById("customerSearch").value = data.name + ` (${data.city})`;
+                
+                bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
+                showToast(`Customer "${data.name}" added successfully!`, "success");
+                
+                updateAllRowPrices();
+                document.getElementById("invoiceDate").focus();
+            }
+        });
+    });
+
+    // Quick Add Product Submission
+    document.getElementById("quickProductForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("prodName").value;
+        const pack = document.getElementById("prodPack").value;
+        const comp = document.getElementById("prodCompany").value;
+        const type = document.getElementById("prodType").value;
+        const gst = document.getElementById("prodGst").value;
+        const schemeQty = document.getElementById("prodSchemeQty").value;
+        const schemeFree = document.getElementById("prodSchemeFree").value;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const rowId = document.getElementById("activeRowId").value;
+
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("pack_size", pack);
+        formData.append("company", comp);
+        formData.append("product_type", type);
+        formData.append("gst_rate", gst);
+        formData.append("scheme_qty", schemeQty);
+        formData.append("scheme_free", schemeFree);
+
+        fetch("/product/create/?json=true", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                productCatalog[data.id] = {
+                    name: data.name,
+                    pack: data.pack_size,
+                    gst: parseFloat(data.gst_rate),
+                    schemeQty: parseInt(data.scheme_qty || 0),
+                    schemeFree: parseInt(data.scheme_free || 0)
+                };
+                productList.push({ id: data.id, name: data.name, pack: data.pack_size });
+                
+                const row = document.getElementById(`item-row-${rowId}`);
+                row.querySelector(".select-product").value = data.id;
+                row.querySelector(".product-search-input").value = data.name;
+                
+                bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                showToast(`Product "${data.name}" added!`, "success");
+                
+                onProductSelect(rowId, data.id);
+                
+                setTimeout(() => {
+                    row.querySelector(".select-batch").focus();
+                }, 100);
+            }
+        });
+    });
+
+    function openCustomerModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addCustomerModal'));
+        modal.show();
+    }
+
+    function openProductModal(rowId) {
+        document.getElementById("activeRowId").value = rowId;
+        const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+        modal.show();
+    }
+</script>
+
+{% endblock %}

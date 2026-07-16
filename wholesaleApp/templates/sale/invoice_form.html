@@ -111,7 +111,7 @@
             
             <!-- Invoice Header Info -->
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label text-muted small fw-bold">Customer (Chemist / Hospital) <span class="text-danger">*</span></label>
                     <div class="combobox-container">
                         <input type="text" id="customerSearch" class="form-control combobox-input" placeholder="Type Chemist Name..." required>
@@ -119,11 +119,18 @@
                         <ul class="combobox-menu shadow-sm"></ul>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label text-muted small fw-bold">Invoice Date <span class="text-danger">*</span></label>
                     <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{% now 'Y-m-d' %}" required>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">Payment Type <span class="text-danger">*</span></label>
+                    <select name="payment_type" id="paymentType" class="form-select" required>
+                        <option value="Cash" selected>Cash (Immediate Paid)</option>
+                        <option value="Credit">Credit (Debtors)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <label class="form-label text-muted small fw-bold">Billing Operator</label>
                     <input type="text" class="form-control bg-light" value="{{ user.username|default:'Admin' }} (Online)" readonly>
                 </div>
@@ -354,7 +361,7 @@
     // Global datasets
     const customerList = [
         {% for customer in customers %}
-        { id: "{{ customer.id }}", name: "{{ customer.name }} ({{ customer.city }})" },
+        { id: "{{ customer.id }}", name: "{{ customer.name }} ({{ customer.city }})", type: "{{ customer.customer_type }}" },
         {% endfor %}
     ];
 
@@ -660,7 +667,7 @@
             .then(batches => {
                 let options = `<option value="">Select Batch</option>`;
                 batches.forEach(b => {
-                    options += `<option value="${b.id}" data-mrp="${b.mrp}" data-srate="${b.sale_rate}" data-exp="${b.expiry_mask}" data-stock="${b.quantity}">${b.batch_number} (Exp: ${b.expiry_mask}) [Stock: ${b.quantity}]</option>`;
+                    options += `<option value="${b.id}" data-mrp="${b.mrp}" data-srate="${b.sale_rate}" data-wholesalerate="${b.wholesale_rate}" data-exp="${b.expiry_mask}" data-stock="${b.quantity}">${b.batch_number} (Exp: ${b.expiry_mask}) [Stock: ${b.quantity}]</option>`;
                 });
                 batchSelect.innerHTML = options;
                 
@@ -678,11 +685,30 @@
         if (selectedOption.value) {
             row.querySelector(".expiry-display").value = selectedOption.dataset.exp;
             row.querySelector(".mrp-display").value = parseFloat(selectedOption.dataset.mrp).toFixed(2);
-            row.querySelector(".srate-input").value = parseFloat(selectedOption.dataset.srate).toFixed(2);
+            
+            // Toggle rate based on customer type
+            const customerType = document.getElementById("customerSelect").dataset.type || 'Retailer';
+            let rate = 0;
+            if (customerType === 'Wholesaler') {
+                rate = parseFloat(selectedOption.dataset.wholesalerate) || 0;
+            } else {
+                rate = parseFloat(selectedOption.dataset.srate) || 0;
+            }
+            row.querySelector(".srate-input").value = rate.toFixed(2);
         }
         calculateRowTotals(id);
         applyProductScheme(id);
         updateLiveMarginInspect(id);
+    }
+
+    function updateAllRowPrices() {
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
+            const rowId = row.id.split("-").pop();
+            const batchSelect = row.querySelector(".select-batch");
+            if (batchSelect && batchSelect.value) {
+                onBatchSelect(rowId);
+            }
+        });
     }
 
     function applyProductScheme(id) {
@@ -898,6 +924,11 @@
             customerList,
             (id) => {
                 document.getElementById("customerSelect").value = id;
+                const selectedCust = customerList.find(c => c.id == id);
+                if (selectedCust) {
+                    document.getElementById("customerSelect").dataset.type = selectedCust.type;
+                    updateAllRowPrices();
+                }
             },
             () => openCustomerModal()
         );

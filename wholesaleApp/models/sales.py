@@ -21,6 +21,12 @@ class SalesInvoice(TenantModel):
         default='Pending',
         verbose_name="Delivery Status"
     )
+    payment_type = models.CharField(
+        max_length=10,
+        choices=(('Cash', 'Cash'), ('Credit', 'Credit')),
+        default='Credit',
+        verbose_name="Payment Type"
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)

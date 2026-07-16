@@ -4,6 +4,43 @@
 {% block page_title %}{{ page_title }}{% endblock %}
 
 {% block content %}
+<!-- Date & Area Filter Form -->
+<div class="card shadow-sm border-0 rounded-4 mb-4 mt-2">
+    <div class="card-body p-4">
+        <form method="GET" action="{% url 'report_outstanding' %}" class="row align-items-end g-3">
+            <div class="col-md-3">
+                <label class="form-label text-muted small fw-bold">From Date</label>
+                <input type="date" name="from_date" class="form-control" value="{{ from_date|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small fw-bold">To Date</label>
+                <input type="date" name="to_date" class="form-control" value="{{ to_date|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small fw-bold">Select Area</label>
+                <select name="area" class="form-select">
+                    <option value="">-- All Areas --</option>
+                    {% for area in areas %}
+                        <option value="{{ area.id }}" {% if selected_area == area.id %}selected{% endif %}>
+                            {{ area.city }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary px-4 rounded-pill flex-grow-1">
+                    <i class="bi bi-funnel-fill"></i> Filter Dues
+                </button>
+                {% if from_date or to_date or selected_area %}
+                <a href="{% url 'report_outstanding' %}" class="btn btn-outline-secondary px-4 rounded-pill">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Total Dues Row -->
 <div class="row g-3 mb-4 text-center mt-2">
     <div class="col-md-6">
@@ -34,6 +71,7 @@
                             <tr>
                                 <th class="ps-4">Chemist / pharmacy Name</th>
                                 <th>Mobile</th>
+                                <th>Aging (Oldest Bill)</th>
                                 <th class="text-end pe-4">Balance Receivable</th>
                             </tr>
                         </thead>
@@ -45,6 +83,16 @@
                                         <div class="text-muted small">{{ c.city }}</div>
                                     </td>
                                     <td>{{ c.mobile }}</td>
+                                    <td>
+                                        {% if c.oldest_date %}
+                                            <div class="text-dark small font-monospace">{{ c.oldest_date|date:"d-m-Y" }}</div>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace" style="font-size: 0.75rem;">
+                                                {{ c.pending_days }} Days
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="text-end fw-bold pe-4 text-primary">₹{{ c.opening_balance|floatformat:2 }}</td>
                                 </tr>
                             {% empty %}
