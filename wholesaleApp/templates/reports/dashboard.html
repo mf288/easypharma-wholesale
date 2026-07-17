@@ -99,5 +99,59 @@
             </div>
         </div>
     </div>
+
+    <!-- Company-wise Sales Card -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="report-icon-box mb-3 text-info bg-info-subtle" style="background-color: #ecfeff; color: #0891b2;">
+                        🏢
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Company-wise Sales</h5>
+                    <p class="text-muted small">Track sold items grouped by pharmaceutical company / manufacturer. Useful for evaluating brand performance.</p>
+                </div>
+                <a href="{% url 'report_company_sales' %}" class="btn btn-outline-info rounded-pill w-100 mt-3">
+                    Open Report <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer-wise Sales Card -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="report-icon-box mb-3 text-secondary bg-secondary-subtle" style="background-color: #f1f5f9; color: #475569;">
+                        👥
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Customer-wise Sales</h5>
+                    <p class="text-muted small">Analyze total sales and billing history grouped by individual chemist shop or retailer.</p>
+                </div>
+                <a href="{% url 'report_customer_sales' %}" class="btn btn-outline-secondary rounded-pill w-100 mt-3">
+                    Open Report <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- GST Tax Return Card -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card report-card shadow-sm h-100" style="border-top: 4px solid #4f46e5;">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="report-icon-box mb-3 text-primary bg-primary-subtle">
+                        🏛️
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">GST Tax Return (GSTR-1 &amp; GSTR-2)</h5>
+                    <p class="text-muted small">Generate consolidated sales tax (Output) and purchase credit tax (Input) logs grouped by tax slabs.</p>
+                </div>
+                <a href="{% url 'report_gst' %}" class="btn btn-primary rounded-pill w-100 mt-3">
+                    Open GST Report <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -1,0 +1,342 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Styling for Printing and Reports */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #printArea, #printArea * {
+            visibility: visible;
+        }
+        #printArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+    .metric-card {
+        border-left: 5px solid;
+        transition: all 0.2s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .nav-tabs .nav-link {
+        border: none;
+        color: #64748b;
+        font-weight: 500;
+        padding: 12px 20px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs .nav-link:hover {
+        background-color: #f1f5f9;
+        color: #4f46e5;
+    }
+    .nav-tabs .nav-link.active,
+    .nav-tabs .nav-link.active:hover {
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        box-shadow: 0 4px 10px -3px rgba(99, 102, 241, 0.4) !important;
+    }
+</style>
+
+<div class="card shadow-sm border-0 rounded-4 mb-4 no-print">
+    <div class="card-body p-3">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">From Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">To Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}" required>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 rounded-3">
+                    <i class="bi bi-funnel-fill"></i> Apply Dates
+                </button>
+                <button type="button" class="btn btn-outline-secondary w-100 rounded-3" onclick="window.print()">
+                    <i class="bi bi-printer-fill"></i> Print Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="printArea">
+    <!-- Header of Report -->
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div>
+            <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-file-earmark-ruled"></i> Consolidated GST Tax Return Report</h4>
+            <p class="text-muted small mb-0">Period: <strong class="text-dark">{{ start_date }}</strong> to <strong class="text-dark">{{ end_date }}</strong></p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">GST Tax Dashboard</span>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 metric-card p-3" style="border-left-color: #6366f1;">
+                <div class="text-muted small fw-bold text-uppercase">Output Taxable (Sales)</div>
+                <h3 class="fw-bold my-1 text-indigo">₹{{ total_sales_taxable|floatformat:2 }}</h3>
+                <div class="small text-muted">Output GST: <strong>₹{{ total_sales_gst|floatformat:2 }}</strong></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 metric-card p-3" style="border-left-color: #e11d48;">
+                <div class="text-muted small fw-bold text-uppercase">Input Taxable (Purchases)</div>
+                <h3 class="fw-bold my-1 text-danger">₹{{ total_purchases_taxable|floatformat:2 }}</h3>
+                <div class="small text-muted">Input Credit GST: <strong>₹{{ total_purchases_gst|floatformat:2 }}</strong></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            {% if net_gst_payable >= 0 %}
+            <div class="card shadow-sm border-0 rounded-4 metric-card p-3" style="border-left-color: #10b981;">
+                <div class="text-muted small fw-bold text-uppercase">Net Output GST Payable</div>
+                <h3 class="fw-bold my-1 text-success">₹{{ net_gst_payable|floatformat:2 }}</h3>
+                <div class="small text-muted">To be paid this month</div>
+            </div>
+            {% else %}
+            <div class="card shadow-sm border-0 rounded-4 metric-card p-3" style="border-left-color: #f59e0b;">
+                <div class="text-muted small fw-bold text-uppercase">Excess ITC Credit Carryover</div>
+                <h3 class="fw-bold my-1 text-warning">₹{{ excess_itc|floatformat:2 }}</h3>
+                <div class="small text-muted">Input GST exceeds Output GST</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Navigation Tabs (Hidden during print) -->
+    <ul class="nav nav-tabs border-0 bg-light p-1.5 rounded-3 mb-4 gap-1 no-print" id="gstReportTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="consolidated-tab" data-bs-toggle="tab" data-bs-target="#consolidated" type="button" role="tab">
+                <i class="bi bi-grid-1x2-fill"></i> Consolidated Summary
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab">
+                <i class="bi bi-box-arrow-up"></i> Sales Output (GSTR-1) Details
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="purchases-tab" data-bs-toggle="tab" data-bs-target="#purchases" type="button" role="tab">
+                <i class="bi bi-box-arrow-in-down"></i> Purchases Input (GSTR-2) Details
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content" id="gstReportTabContent">
+        <!-- 1. CONSOLIDATED SUMMARY TAB -->
+        <div class="tab-pane fade show active" id="consolidated" role="tabpanel">
+            <div class="row g-4">
+                <!-- Sales Output Summary -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 rounded-4">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-arrow-up-right-circle"></i> Sales Output Tax (GSTR-1 Summary)</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>GST Rate</th>
+                                        <th class="text-end">Taxable Value (₹)</th>
+                                        <th class="text-end">CGST (₹)</th>
+                                        <th class="text-end">SGST (₹)</th>
+                                        <th class="text-end">Total GST (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in sales_summary %}
+                                    <tr>
+                                        <td class="fw-bold">{{ row.rate }}%</td>
+                                        <td class="text-end">₹{{ row.taxable|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ row.cgst|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ row.sgst|floatformat:2 }}</td>
+                                        <td class="text-end fw-bold text-indigo">₹{{ row.gst|floatformat:2 }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-3">No sales transactions in this period</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light border-top">
+                                    <tr class="fw-bold">
+                                        <td>Total</td>
+                                        <td class="text-end">₹{{ total_sales_taxable|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ total_sales_cgst|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ total_sales_sgst|floatformat:2 }}</td>
+                                        <td class="text-end text-indigo">₹{{ total_sales_gst|floatformat:2 }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchases Input Summary -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 rounded-4">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold text-danger"><i class="bi bi-arrow-down-left-circle"></i> Purchase Input Tax (GSTR-2 Summary)</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>GST Rate</th>
+                                        <th class="text-end">Taxable Value (₹)</th>
+                                        <th class="text-end">CGST (₹)</th>
+                                        <th class="text-end">SGST (₹)</th>
+                                        <th class="text-end">Total GST (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in purchases_summary %}
+                                    <tr>
+                                        <td class="fw-bold">{{ row.rate }}%</td>
+                                        <td class="text-end">₹{{ row.taxable|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ row.cgst|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ row.sgst|floatformat:2 }}</td>
+                                        <td class="text-end fw-bold text-rose">₹{{ row.gst|floatformat:2 }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-3">No purchase transactions in this period</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light border-top">
+                                    <tr class="fw-bold">
+                                        <td>Total</td>
+                                        <td class="text-end">₹{{ total_purchases_taxable|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ total_purchases_cgst|floatformat:2 }}</td>
+                                        <td class="text-end text-secondary">₹{{ total_purchases_sgst|floatformat:2 }}</td>
+                                        <td class="text-end text-danger">₹{{ total_purchases_gst|floatformat:2 }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. SALES DETAILS TAB -->
+        <div class="tab-pane fade" id="sales" role="tabpanel">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-box-arrow-up"></i> GSTR-1 Sales Invoice Level Logs</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Invoice No</th>
+                                    <th>Chemist Name</th>
+                                    <th>GSTIN</th>
+                                    <th>Item</th>
+                                    <th class="text-center">GST %</th>
+                                    <th class="text-end">Taxable (₹)</th>
+                                    <th class="text-end">CGST (₹)</th>
+                                    <th class="text-end">SGST (₹)</th>
+                                    <th class="text-end">Total GST (₹)</th>
+                                    <th class="text-end">Invoice Amt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detail in sales_details %}
+                                <tr>
+                                    <td>{{ detail.date|date:'Y-m-d' }}</td>
+                                    <td><code class="text-dark fw-bold">{{ detail.invoice_number }}</code></td>
+                                    <td>{{ detail.customer_name }}</td>
+                                    <td><span class="badge bg-light text-secondary border small">{{ detail.customer_gstin }}</span></td>
+                                    <td class="small">{{ detail.product_name }}</td>
+                                    <td class="text-center">{{ detail.gst_rate }}%</td>
+                                    <td class="text-end">₹{{ detail.taxable|floatformat:2 }}</td>
+                                    <td class="text-end text-secondary">₹{{ detail.cgst|floatformat:2 }}</td>
+                                    <td class="text-end text-secondary">₹{{ detail.sgst|floatformat:2 }}</td>
+                                    <td class="text-end fw-semibold text-indigo">₹{{ detail.gst|floatformat:2 }}</td>
+                                    <td class="text-end fw-bold">₹{{ detail.total|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted py-4">No detailed sales records found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. PURCHASES DETAILS TAB -->
+        <div class="tab-pane fade" id="purchases" role="tabpanel">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold text-danger"><i class="bi bi-box-arrow-in-down"></i> GSTR-2 Purchase Invoice Level Logs</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Inv Number</th>
+                                    <th>Supplier Name</th>
+                                    <th>GSTIN</th>
+                                    <th>Item</th>
+                                    <th class="text-center">GST %</th>
+                                    <th class="text-end">Taxable (₹)</th>
+                                    <th class="text-end">CGST (₹)</th>
+                                    <th class="text-end">SGST (₹)</th>
+                                    <th class="text-end">Total GST (₹)</th>
+                                    <th class="text-end">Invoice Amt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detail in purchase_details %}
+                                <tr>
+                                    <td>{{ detail.date|date:'Y-m-d' }}</td>
+                                    <td><code class="text-dark fw-bold">{{ detail.invoice_number }}</code></td>
+                                    <td>{{ detail.supplier_name }}</td>
+                                    <td><span class="badge bg-light text-secondary border small">{{ detail.supplier_gstin }}</span></td>
+                                    <td class="small">{{ detail.product_name }}</td>
+                                    <td class="text-center">{{ detail.gst_rate }}%</td>
+                                    <td class="text-end">₹{{ detail.taxable|floatformat:2 }}</td>
+                                    <td class="text-end text-secondary">₹{{ detail.cgst|floatformat:2 }}</td>
+                                    <td class="text-end text-secondary">₹{{ detail.sgst|floatformat:2 }}</td>
+                                    <td class="text-end fw-semibold text-rose">₹{{ detail.gst|floatformat:2 }}</td>
+                                    <td class="text-end fw-bold">₹{{ detail.total|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted py-4">No detailed purchase records found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

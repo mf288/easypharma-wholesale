@@ -11,7 +11,7 @@
         <ul class="nav flex-column">
             
             <li class="nav-item mb-1">
-                <a href="{% url 'home' %}" class="nav-link text-white active">
+                <a href="{% url 'home' %}" class="nav-link text-white">
                     <i class="bi bi-speedometer2 me-2"></i> Dashboard
                 </a>
             </li>
@@ -150,6 +150,9 @@
                         <li class="nav-item"><a href="{% url 'reports_dashboard' %}" class="nav-link text-light">Reports Hub</a></li>
                         {% if 'sales_reprint' in user_perms %}
                         <li class="nav-item"><a href="{% url 'report_sales' %}" class="nav-link text-light">GST Sales Summary</a></li>
+                        <li class="nav-item"><a href="{% url 'report_company_sales' %}" class="nav-link text-light">Company-wise Sales</a></li>
+                        <li class="nav-item"><a href="{% url 'report_customer_sales' %}" class="nav-link text-light">Customer-wise Sales</a></li>
+                        <li class="nav-item"><a href="{% url 'report_gst' %}" class="nav-link text-light">Consolidated GST Report</a></li>
                         {% endif %}
                         {% if 'view_margins' in user_perms %}
                         <li class="nav-item"><a href="{% url 'report_stock' %}" class="nav-link text-light">Stock Valuation</a></li>
@@ -191,26 +194,74 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const navLinks = document.querySelectorAll(".sidebar .nav-link");
+        const currentPath = window.location.pathname;
+        let matched = false;
+
+        // Reset all active classes first
+        navLinks.forEach(link => {
+            link.classList.remove("active");
+            link.classList.remove("text-white");
+            if (!link.classList.contains("text-danger")) {
+                link.classList.add("text-light");
+            }
+        });
+
+        // Match current path
+        navLinks.forEach(link => {
+            const href = link.getAttribute("href");
+            if (href && href !== "#" && (currentPath === href || currentPath.startsWith(href))) {
+                link.classList.add("active");
+                link.classList.remove("text-light");
+                link.classList.add("text-white");
+                matched = true;
+
+                // Auto-expand parent collapse menus
+                const parentCollapse = link.closest(".collapse");
+                if (parentCollapse) {
+                    parentCollapse.classList.add("show");
+                    const parentToggle = document.querySelector(`.sidebar a[href="#${parentCollapse.id}"]`);
+                    if (parentToggle) {
+                        parentToggle.classList.add("active");
+                    }
+                }
+            }
+        });
+
+        // Default fallback to Dashboard
+        if (!matched && (currentPath === "/" || currentPath === "/home/")) {
+            const dashLink = document.querySelector(".sidebar a[href='{% url 'home' %}']");
+            if (dashLink) {
+                dashLink.classList.add("active");
+                dashLink.classList.remove("text-light");
+                dashLink.classList.add("text-white");
+            }
+        }
+    });
+</script>
+
 <style>
     .sidebar {
         transition: all 0.3s ease;
     }
-    .nav-link {
+    .sidebar .nav-link {
         color: #f0e6ff !important;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 3px 0;
     }
-    .nav-link:hover {
+    .sidebar .nav-link:hover {
         background-color: rgba(255,255,255,0.15);
         color: white !important;
     }
-    .nav-link.active {
+    .sidebar .nav-link.active {
         background-color: #5a32a3;
         color: white !important;
         font-weight: 500;
     }
-    .collapse .nav-link {
+    .sidebar .collapse .nav-link {
         padding-left: 40px;
         font-size: 0.95rem;
     }

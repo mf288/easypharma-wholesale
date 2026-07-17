@@ -4,88 +4,191 @@
 {% block page_title %}{{ page_title }}{% endblock %}
 
 {% block content %}
+<style>
+    /* Premium Combobox & Custom Billing Table Styling */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    tr:focus-within {
+        position: relative;
+        z-index: 1050;
+    }
+    tr.active-row {
+        background-color: rgba(99, 102, 241, 0.04) !important;
+        outline: 1px solid rgba(99, 102, 241, 0.15);
+    }
+    .combobox-container {
+        position: relative;
+    }
+    .combobox-input {
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .combobox-input:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+    }
+    .combobox-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1060;
+        display: none;
+        min-width: 100%;
+        padding: 6px 0;
+        margin-top: 4px;
+        background-color: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        max-height: 260px;
+        overflow-y: auto;
+    }
+    .combobox-menu li {
+        margin: 2px 6px;
+    }
+    .combobox-menu li a {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        color: #334155;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: all 0.15s ease;
+        cursor: pointer;
+    }
+    .combobox-menu li a:hover,
+    .combobox-menu li.active a {
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        transform: translateY(-1px);
+    }
+    .combobox-menu li.active a code {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    .combobox-menu::-webkit-scrollbar {
+        width: 6px;
+    }
+    .combobox-menu::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .combobox-menu::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 3px;
+    }
+    
+    .footer-item {
+        margin: 4px 0 0 0 !important;
+        padding: 0 !important;
+    }
+    .footer-item a {
+        border-radius: 0 0 10px 10px !important;
+        background-color: #f8fafc !important;
+        color: #4f46e5 !important;
+        font-weight: 600;
+        text-align: center;
+        justify-content: center !important;
+        padding: 10px !important;
+    }
+    .footer-item a:hover {
+        background-color: #e2e8f0 !important;
+        color: #4f46e5 !important;
+    }
+    
+    .billing-input {
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+    }
+    .billing-input:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+        outline: none;
+    }
+</style>
 
-<div class="row justify-content-center">
-    <div class="col-lg-12">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-pencil-square text-primary"></i> {{ page_title }}</h5>
-                <a href="{% url 'purchase_entry_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-                    <i class="bi bi-arrow-left"></i> Back to List
-                </a>
-            </div>
+<div class="card shadow-sm border-0 rounded-4">
+    <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-pencil-square"></i> {{ page_title }}</h5>
+        <span class="badge bg-info-subtle text-info fs-6 px-3 py-2 rounded-pill" style="background-color: #e0f2fe; color: #0369a1;">
+            F2: New Row | Enter: Next | F4: Add New Modal
+        </span>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="entryForm">
+            {% csrf_token %}
             
-            <div class="card-body p-4">
-                <form method="POST">
-                    {% csrf_token %}
-                    
-                    <!-- Purchase Header Info -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-3">
-                            <label class="form-label text-muted small fw-bold">Supplier <span class="text-danger">*</span></label>
-                            <div class="combobox-container">
-                                <input type="text" id="supplierSearch" class="form-control combobox-input" placeholder="Type Supplier Name..." required value="{{ entry.supplier.name }}">
-                                <input type="hidden" name="supplier" id="supplierSelect" class="combobox-hidden-value" required value="{{ entry.supplier.id }}">
-                                <ul class="combobox-menu shadow-sm"></ul>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small fw-bold">Supplier Invoice No <span class="text-danger">*</span></label>
-                            <input type="text" name="invoice_number" id="invoiceNumber" class="form-control" placeholder="e.g., INV-9874" required value="{{ entry.invoice_number }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small fw-bold">Invoice Date <span class="text-danger">*</span></label>
-                            <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{{ entry.invoice_date|date:'Y-m-d' }}" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label text-muted small fw-bold">Payment Type <span class="text-danger">*</span></label>
-                            <select name="payment_type" id="paymentType" class="form-select" required>
-                                <option value="Credit" {% if entry.payment_type == 'Credit' %}selected{% endif %}>Credit (Accounts Payable)</option>
-                                <option value="Cash" {% if entry.payment_type == 'Cash' %}selected{% endif %}>Cash (Immediate Paid)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small fw-bold">Entry Date</label>
-                            <input type="text" class="form-control bg-light" value="{{ entry.entry_date }} (Today)" readonly>
-                        </div>
+            <!-- Purchase Header Info -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">Supplier <span class="text-danger">*</span></label>
+                    <div class="combobox-container">
+                        <input type="text" id="supplierSearch" class="form-control combobox-input" placeholder="Type Supplier Name..." required value="{{ entry.supplier.name }}">
+                        <input type="hidden" name="supplier" id="supplierSelect" class="combobox-hidden-value" required value="{{ entry.supplier.id }}">
+                        <ul class="combobox-menu shadow-sm"></ul>
                     </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold">Supplier Invoice No <span class="text-danger">*</span></label>
+                    <input type="text" name="invoice_number" id="invoiceNumber" class="form-control" placeholder="e.g., INV-9874" required value="{{ entry.invoice_number }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold">Invoice Date <span class="text-danger">*</span></label>
+                    <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{{ entry.invoice_date|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">Payment Type <span class="text-danger">*</span></label>
+                    <select name="payment_type" id="paymentType" class="form-select" required>
+                        <option value="Credit" {% if entry.payment_type == 'Credit' %}selected{% endif %}>Credit (Accounts Payable)</option>
+                        <option value="Cash" {% if entry.payment_type == 'Cash' %}selected{% endif %}>Cash (Immediate Paid)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold">Entry Date</label>
+                    <input type="text" class="form-control bg-light" value="{{ entry.entry_date }} (Today)" readonly>
+                </div>
+            </div>
 
-                    <!-- Items Table Section -->
-                    <div class="border-top pt-4">
-                        <h5 class="mb-3 fw-bold text-dark">Purchase Invoice Items</h5>
-                        <div class="table-responsive">
-                            <table class="table table-bordered align-middle" id="invoiceTable" style="min-width: 1200px;">
-                                <thead class="table-light text-center">
-                                    <tr>
-                                        <th style="width: 20%;">Product <span class="text-danger">*</span></th>
-                                        <th style="width: 9%;">Batch No <span class="text-danger">*</span></th>
-                                        <th style="width: 9%;">Expiry (MM/YY) <span class="text-danger">*</span></th>
-                                        <th style="width: 7%;">MRP (₹) <span class="text-danger">*</span></th>
-                                        <th style="width: 7%;">P-Rate (₹) <span class="text-danger">*</span></th>
-                                        <th style="width: 7%;">S-Rate (₹) <span class="text-danger">*</span></th>
-                                        <th style="width: 7%;">W-Rate (₹)</th>
-                                        <th style="width: 6%;">Qty <span class="text-danger">*</span></th>
-                                        <th style="width: 5%;">Free</th>
-                                        <th style="width: 5%;">GST %</th>
-                                        <th style="width: 5%;">Disc %</th>
-                                        <th style="width: 10%;">Total Amount</th>
-                                        <th style="width: 4%;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Dynamic invoice items will go here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <button type="button" class="btn btn-outline-primary mt-3 mb-4 rounded-pill px-4" onclick="addNewItemRow()">
-                            <i class="bi bi-plus-circle"></i> Add Item Row (F2)
-                        </button>
+            <!-- Two Column Layout: Left table/totals, Right docked stock inspector -->
+            <div class="row g-4 border-top pt-4">
+                <div class="col-lg-9 col-md-12">
+                    <h5 class="mb-3 fw-bold text-dark">Purchase Invoice Items</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle" id="invoiceTable" style="min-width: 1000px;">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th style="width: 20%;">Product <span class="text-danger">*</span></th>
+                                    <th style="width: 10%;">Batch No <span class="text-danger">*</span></th>
+                                    <th style="width: 10%;">Expiry <span class="text-danger">*</span></th>
+                                    <th style="width: 8%;">MRP (₹) <span class="text-danger">*</span></th>
+                                    <th style="width: 8%;">P-Rate (₹) <span class="text-danger">*</span></th>
+                                    <th style="width: 8%;">S-Rate (₹) <span class="text-danger">*</span></th>
+                                    <th style="width: 8%;">W-Rate (₹)</th>
+                                    <th style="width: 6%;">Qty <span class="text-danger">*</span></th>
+                                    <th style="width: 5%;">Free</th>
+                                    <th style="width: 5%;">GST %</th>
+                                    <th style="width: 5%;">Disc %</th>
+                                    <th style="width: 7%;">Disc (₹)</th>
+                                    <th style="width: 10%;">Total Amount</th>
+                                    <th style="width: 4%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic invoice items will go here -->
+                            </tbody>
+                        </table>
                     </div>
+                    
+                    <button type="button" class="btn btn-outline-primary mt-3 mb-4 rounded-pill px-4" onclick="addNewItemRow()">
+                        <i class="bi bi-plus-circle"></i> Add Item Row (F2)
+                    </button>
 
                     <!-- Invoice Summaries -->
                     <div class="row justify-content-end mb-4 border-top pt-4">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <table class="table table-borderless">
                                 <tr>
                                     <td class="text-muted">Gross Taxable Value:</td>
@@ -93,9 +196,16 @@
                                     <input type="hidden" name="gross_amount" id="inputGross" value="{{ entry.gross_amount }}">
                                 </tr>
                                 <tr>
-                                    <td class="text-muted">Bill Discount (₹):</td>
+                                    <td class="text-muted">Product Discounts:</td>
+                                    <td class="text-end text-danger fw-semibold">-₹<span id="summaryDiscount">0.00</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Bill Discount (Discount on Total Bill):</td>
                                     <td class="text-end text-danger fw-semibold">
-                                        <input type="number" name="discount_amount" id="inputDiscount" class="form-control form-control-sm text-end d-inline-block" style="width: 120px;" step="0.01" min="0" value="{{ entry.discount_amount }}" oninput="recalculateInvoiceSummary()">
+                                        <div class="d-flex justify-content-end align-items-center gap-2">
+                                            <input type="number" id="billDiscountPct" class="form-control form-control-sm text-end" style="width: 85px;" step="0.01" min="0" placeholder="0.0%" oninput="onBillDiscountPctChange()">
+                                            <input type="number" id="billDiscountAmt" class="form-control form-control-sm text-end" style="width: 110px;" step="0.01" min="0" placeholder="₹0.00" oninput="onBillDiscountAmtChange()">
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr>
@@ -108,35 +218,80 @@
                                     <td class="text-end fw-bold fs-5 text-primary">₹<span id="summaryNet">0.00</span></td>
                                     <input type="hidden" name="net_amount" id="inputNet" value="{{ entry.net_amount }}">
                                 </tr>
+                                <input type="hidden" name="discount_amount" id="inputDiscount" value="{{ entry.discount_amount }}">
                             </table>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Submission Actions -->
-                    <div class="d-flex gap-2">
-                        <button type="submit" id="submitBtn" class="btn btn-success btn-lg px-5 rounded-3">Save Changes</button>
-                        <a href="{% url 'purchase_entry_list' %}" class="btn btn-secondary btn-lg px-5 rounded-3">Cancel</a>
+                <!-- Right Column docked panel -->
+                <div class="col-lg-3 col-md-12">
+                    <div class="card shadow-sm border rounded-4 sticky-top" style="top: 20px; z-index: 100;">
+                        <div class="card-header bg-primary text-white py-3 rounded-top-4">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle"></i> Purchase Inspector Panel</h6>
+                        </div>
+                        <div class="card-body p-3" id="stockInspectorPanel">
+                            <div class="text-center text-muted py-5" id="inspectorPlaceholder">
+                                <i class="bi bi-box-seam display-4 d-block mb-3 text-secondary"></i>
+                                Focus a row or select a product to inspect details here.
+                            </div>
+                            <div class="d-none" id="inspectorContent">
+                                <h6 class="fw-bold text-primary mb-1" id="inspectProductName">Product Name</h6>
+                                <div class="text-muted small mb-3">Pack: <span id="inspectProductPack">-</span> | GST: <span id="inspectProductGst">-</span>%</div>
+                                
+                                {% if user.is_superuser or 'view_margins' in user_perms %}
+                                <div class="bg-light p-3 rounded-3 mb-3 border">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-muted small">Last Purchase Rate:</span>
+                                        <span class="fw-bold" id="liveLastPRate">₹0.00</span>
+                                    </div>
+                                    <div class="alert alert-warning border border-warning p-2 small mb-0 d-none" id="priceAlertText">
+                                        <i class="bi bi-exclamation-triangle"></i> Buying price is higher than last purchase by <strong id="liveMarginLoss">₹0.00</strong>
+                                    </div>
+                                </div>
+
+                                <div class="border-top pt-3">
+                                    <label class="small text-muted fw-bold mb-2 d-block">Expected Billing Margins</label>
+                                    <div class="row g-2 text-center">
+                                        <div class="col-6 bg-light p-2 rounded-3 border-end">
+                                            <div class="text-muted small" style="font-size: 0.75rem;">Wholesaler Margin</div>
+                                            <div class="fw-bold text-success" id="liveStockistMargin">0.0%</div>
+                                        </div>
+                                        <div class="col-6 bg-light p-2 rounded-3">
+                                            <div class="text-muted small" style="font-size: 0.75rem;">Chemist Margin</div>
+                                            <div class="fw-bold text-indigo" id="liveRetailerMargin">0.0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+
+            <!-- Submission Actions -->
+            <div class="d-flex gap-2 border-top pt-4 mt-3">
+                <button type="submit" id="submitBtn" class="btn btn-success btn-lg px-5 rounded-3">Save Changes</button>
+                <a href="{% url 'purchase_entry_list' %}" class="btn btn-secondary btn-lg px-5 rounded-3">Cancel</a>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- ==================== DIALOG MODALS ==================== -->
-<!-- Quick Supplier Modal -->
+<!-- ==================== QUICK SUPPLIER ADD MODAL ==================== -->
 <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Quick Add Supplier</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-plus"></i> Quick Add Supplier</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="quickSupplierForm">
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                        <div class="col-md-6">
+                            <label class="form-label">Supplier/Business Name <span class="text-danger">*</span></label>
                             <input type="text" id="suppName" class="form-control" required>
                         </div>
                         <div class="col-md-6">
@@ -145,14 +300,14 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">City</label>
-                            <input type="text" id="suppCity" class="form-control" value="Mumbai">
+                            <input type="text" id="suppCity" class="form-control">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">State</label>
-                            <input type="text" id="suppState" class="form-control" value="Maharashtra">
+                            <input type="text" id="suppState" class="form-control">
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Full Address</label>
+                        <div class="col-md-12">
+                            <label class="form-label">Business Address</label>
                             <textarea id="suppAddress" class="form-control" rows="2"></textarea>
                         </div>
                     </div>
@@ -166,45 +321,49 @@
     </div>
 </div>
 
-<!-- Quick Product Modal -->
+<!-- ==================== QUICK PRODUCT ADD MODAL ==================== -->
 <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Quick Add Product</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-box-seam"></i> Quick Add Product Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="quickProductForm">
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Product Name / Brand <span class="text-danger">*</span></label>
-                            <input type="text" id="prodName" class="form-control" placeholder="e.g. Dolo 650mg" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Brand Name <span class="text-danger">*</span></label>
+                            <input type="text" id="prodName" class="form-control" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Pack size <span class="text-danger">*</span></label>
-                            <input type="text" id="prodPack" class="form-control" placeholder="e.g. 15 Tab" required>
+                            <label class="form-label">Packaging / Pack Size <span class="text-danger">*</span></label>
+                            <input type="text" id="prodPack" class="form-control" placeholder="e.g. 10 Tab" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">GST Tax Rate <span class="text-danger">*</span></label>
-                            <select id="prodGst" class="form-select" required>
-                                <option value="12.00">12%</option>
-                                <option value="18.00">18%</option>
-                                <option value="5.00">5%</option>
-                                <option value="0.00">0%</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Company Manufacturer <span class="text-danger">*</span></label>
+                            <label class="form-label">Company / Manufacturer <span class="text-danger">*</span></label>
                             <select id="prodCompany" class="form-select" required>
                                 <option value="">Select Company</option>
                             </select>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Product Category Type <span class="text-danger">*</span></label>
+                        <div class="col-md-6">
+                            <label class="form-label">Dosage Form <span class="text-danger">*</span></label>
                             <select id="prodType" class="form-select" required>
-                                <option value="">Select Category</option>
+                                <option value="">Select Type</option>
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">GST Rate <span class="text-danger">*</span></label>
+                            <select id="prodGst" class="form-select" required>
+                                <option value="12.00">12%</option>
+                                <option value="5.00">5%</option>
+                                <option value="18.00">18%</option>
+                                <option value="0.00">0%</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">HSN Code</label>
+                            <input type="text" id="prodHsn" class="form-control">
                         </div>
                     </div>
                 </div>
@@ -230,6 +389,7 @@
         "{{ product.id }}": {
             name: "{{ product.name }}",
             pack: "{{ product.pack_size }}",
+            hsn: "{{ product.hsn_code|default:'' }}",
             gst: parseFloat("{{ product.gst_rate }}")
         },
         {% endfor %}
@@ -246,7 +406,7 @@
         {% for item in entry.items.all %}
         {
             productId: "{{ item.product.id }}",
-            productName: "{{ item.product.name }}",
+            productName: "{{ item.product.name }} ({{ item.product.pack_size }})",
             packSize: "{{ item.product.pack_size }}",
             batchNumber: "{{ item.batch_number }}",
             expiryMask: "{{ item.expiry_date|date:'m/y' }}",
@@ -264,7 +424,7 @@
         {% endfor %}
     ];
 
-    let activeRowIdForProduct = null;
+    const mockLastPurchaseRates = {};
 
     // ==================== PREMIUM COMBOBOX ENGINE ====================
     function setupCombobox(inputEl, dataset, onSelectCallback, onAddCallback) {
@@ -349,8 +509,6 @@
             if (onSelectCallback) {
                 onSelectCallback(id, name);
             }
-
-            focusNextField(inputEl);
         }
 
         function renderSuggestions(query) {
@@ -371,12 +529,8 @@
                 });
             } else {
                 const li = document.createElement("li");
-                li.className = "text-primary text-center p-3 cursor-pointer small";
-                li.innerHTML = `<i class="bi bi-plus-circle"></i> No matches found. Click to Add!`;
-                li.addEventListener("click", () => {
-                    menu.style.display = "none";
-                    if (onAddCallback) onAddCallback();
-                });
+                li.className = "text-muted p-3 text-center small";
+                li.textContent = "No matches found";
                 menu.appendChild(li);
             }
 
@@ -393,24 +547,6 @@
         }
     }
 
-    function focusNextField(currentInput) {
-        const row = currentInput.closest("tr");
-        if (row) {
-            const inputs = Array.from(row.querySelectorAll("input:not([readonly]), select"));
-            const idx = inputs.indexOf(currentInput);
-            if (idx > -1 && idx < inputs.length - 1) {
-                inputs[idx + 1].focus();
-                return;
-            }
-        }
-        
-        const allInputs = Array.from(document.querySelectorAll("#supplierSearch, #invoiceNumber, #invoiceDate, #paymentType, #invoiceTable tbody input:not([readonly])"));
-        const idx = allInputs.indexOf(currentInput);
-        if (idx > -1 && idx < allInputs.length - 1) {
-            allInputs[idx + 1].focus();
-        }
-    }
-
     // ==================== INVOICE ROW BUILDER ====================
     function addNewItemRow() {
         const tableBody = document.querySelector("#invoiceTable tbody");
@@ -420,146 +556,316 @@
             <tr id="item-row-${rowId}">
                 <td>
                     <div class="combobox-container">
-                        <input type="text" class="form-control combobox-input product-search-input" placeholder="Type Medicine..." required>
+                        <input type="text" class="form-control billing-input combobox-input product-search-input" placeholder="Type Medicine..." required>
                         <input type="hidden" name="product[]" class="select-product combobox-hidden-value" required>
                         <ul class="combobox-menu shadow-sm"></ul>
                     </div>
                 </td>
                 <td>
-                    <input type="text" name="batch_number[]" class="form-control text-center batch-input" placeholder="e.g. B2501" required>
+                    <input type="text" name="batch_number[]" class="form-control billing-input text-center batch-input" placeholder="e.g. B2501" required>
                 </td>
                 <td>
-                    <input type="text" class="form-control text-center expiry-mask-input" placeholder="MM/YY" required oninput="formatExpiry(this, ${rowId})">
+                    <input type="text" class="form-control billing-input text-center expiry-mask-input" placeholder="MM/YY" required oninput="formatExpiry(this, ${rowId})">
                     <input type="hidden" name="expiry_date[]" class="expiry-real-date" required>
                 </td>
                 <td>
-                    <input type="number" name="mrp[]" class="form-control text-end mrp-input" step="0.01" min="0" placeholder="0.00" required>
+                    <input type="number" name="mrp[]" class="form-control billing-input text-end mrp-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="purchase_rate[]" class="form-control text-end prate-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="purchase_rate[]" class="form-control billing-input text-end prate-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
                 </td>
                 <td>
-                    <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required>
+                    <input type="number" name="sale_rate[]" class="form-control billing-input text-end srate-input" step="0.01" min="0" placeholder="0.00" required oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="wholesale_rate[]" class="form-control text-end wrate-input" step="0.01" min="0" placeholder="0.00">
+                    <input type="number" name="wholesale_rate[]" class="form-control billing-input text-end wrate-input" step="0.01" min="0" placeholder="0.00" oninput="calculateRowTotals(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="1" required oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="quantity[]" class="form-control billing-input text-center qty-input" min="1" value="1" required oninput="calculateRowTotals(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="free_quantity[]" class="form-control text-center free-input" min="0" value="0" oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="free_quantity[]" class="form-control billing-input text-center free-input" min="0" value="0" oninput="calculateRowTotals(${rowId})">
                 </td>
                 <td>
-                    <input type="text" class="form-control text-center bg-light gst-display" value="12%" readonly>
+                    <input type="text" class="form-control billing-input text-center bg-light gst-display" value="12%" readonly>
                     <input type="hidden" class="gst-input" value="12.00">
                 </td>
                 <td>
-                    <input type="number" name="discount_percentage[]" class="form-control text-center disc-input" step="0.01" min="0" max="100" value="0.00" oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="discount_percentage[]" class="form-control billing-input text-center disc-input" step="0.01" min="0" max="100" value="0.00" oninput="calculateRowTotalsFromPct(${rowId})">
+                </td>
+                <td>
+                    <input type="number" class="form-control billing-input text-center disc-amt-input" step="0.01" min="0" value="0.00" oninput="calculateRowTotalsFromAmt(${rowId})">
                 </td>
                 <td class="text-end fw-semibold">
                     ₹<span class="row-total">0.00</span>
                     <input type="hidden" name="total_amount[]" class="row-total-input" value="0.00">
                 </td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" onclick="removeItemRow(${rowId})">
-                        <i class="bi bi-x"></i>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeItemRow(${rowId})">
+                        <i class="bi bi-trash"></i>
                     </button>
                 </td>
             </tr>
         `;
         tableBody.insertAdjacentHTML('beforeend', rowHTML);
 
-        // Bind Searchable Combobox to the new Row's Product input
         const row = document.getElementById(`item-row-${rowId}`);
         const productSearchInput = row.querySelector(".product-search-input");
         setupCombobox(
             productSearchInput, 
             productList, 
-            (id, name) => onProductSelect(rowId, id),
-            () => {
-                activeRowIdForProduct = rowId;
-                openProductModal();
-            }
+            (id) => onProductSelect(rowId, id),
+            () => openProductModal(rowId)
         );
+
+        bindRowFocusAndNavigation(rowId);
     }
 
     function addExistingItemRow(item) {
         const tableBody = document.querySelector("#invoiceTable tbody");
         const rowId = tableBody.children.length;
+        const initialDiscountAmt = (parseFloat(item.quantity) * parseFloat(item.purchaseRate)) * (parseFloat(item.discountPercentage) / 100);
         
         const rowHTML = `
             <tr id="item-row-${rowId}">
                 <td>
                     <div class="combobox-container">
-                        <input type="text" class="form-control combobox-input product-search-input" placeholder="Type Medicine..." required value="${item.productName} (${item.packSize})">
+                        <input type="text" class="form-control billing-input combobox-input product-search-input" placeholder="Type Medicine..." required value="${item.productName}">
                         <input type="hidden" name="product[]" class="select-product combobox-hidden-value" required value="${item.productId}">
                         <ul class="combobox-menu shadow-sm"></ul>
                     </div>
                 </td>
                 <td>
-                    <input type="text" name="batch_number[]" class="form-control text-center batch-input" placeholder="e.g. B2501" required value="${item.batchNumber}">
+                    <input type="text" name="batch_number[]" class="form-control billing-input text-center batch-input" placeholder="e.g. B2501" required value="${item.batchNumber}">
                 </td>
                 <td>
-                    <input type="text" class="form-control text-center expiry-mask-input" placeholder="MM/YY" required value="${item.expiryMask}" oninput="formatExpiry(this, ${rowId})">
+                    <input type="text" class="form-control billing-input text-center expiry-mask-input" placeholder="MM/YY" required value="${item.expiryMask}" oninput="formatExpiry(this, ${rowId})">
                     <input type="hidden" name="expiry_date[]" class="expiry-real-date" required value="${item.expiryReal}">
                 </td>
                 <td>
-                    <input type="number" name="mrp[]" class="form-control text-end mrp-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.mrp).toFixed(2)}">
+                    <input type="number" name="mrp[]" class="form-control billing-input text-end mrp-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.mrp).toFixed(2)}" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="purchase_rate[]" class="form-control text-end prate-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.purchaseRate).toFixed(2)}" oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="purchase_rate[]" class="form-control billing-input text-end prate-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.purchaseRate).toFixed(2)}" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId});">
                 </td>
                 <td>
-                    <input type="number" name="sale_rate[]" class="form-control text-end srate-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.saleRate).toFixed(2)}">
+                    <input type="number" name="sale_rate[]" class="form-control billing-input text-end srate-input" step="0.01" min="0" placeholder="0.00" required value="${parseFloat(item.saleRate).toFixed(2)}" oninput="calculateRowTotals(${rowId}); updateLiveMarginInspect(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="wholesale_rate[]" class="form-control text-end wrate-input" step="0.01" min="0" placeholder="0.00" value="${item.wholesaleRate ? parseFloat(item.wholesaleRate).toFixed(2) : ''}">
+                    <input type="number" name="wholesale_rate[]" class="form-control billing-input text-end wrate-input" step="0.01" min="0" placeholder="0.00" value="${parseFloat(item.wholesaleRate).toFixed(2)}" oninput="calculateRowTotals(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="quantity[]" class="form-control text-center qty-input" min="1" value="${item.quantity}" required oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="quantity[]" class="form-control billing-input text-center qty-input" min="1" value="${item.quantity}" required oninput="calculateRowTotals(${rowId})">
                 </td>
                 <td>
-                    <input type="number" name="free_quantity[]" class="form-control text-center free-input" min="0" value="${item.freeQuantity}" oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="free_quantity[]" class="form-control billing-input text-center free-input" min="0" value="${item.freeQuantity}" oninput="calculateRowTotals(${rowId})">
                 </td>
                 <td>
-                    <input type="text" class="form-control text-center bg-light gst-display" value="${parseFloat(item.gstRate)}%" readonly>
+                    <input type="text" class="form-control billing-input text-center bg-light gst-display" value="${parseFloat(item.gstRate)}%" readonly>
                     <input type="hidden" class="gst-input" value="${parseFloat(item.gstRate)}">
                 </td>
                 <td>
-                    <input type="number" name="discount_percentage[]" class="form-control text-center disc-input" step="0.01" min="0" max="100" value="${parseFloat(item.discountPercentage).toFixed(2)}" oninput="calculateRowTotals(${rowId})">
+                    <input type="number" name="discount_percentage[]" class="form-control billing-input text-center disc-input" step="0.01" min="0" max="100" value="${parseFloat(item.discountPercentage).toFixed(2)}" oninput="calculateRowTotalsFromPct(${rowId})">
+                </td>
+                <td>
+                    <input type="number" class="form-control billing-input text-center disc-amt-input" step="0.01" min="0" value="${initialDiscountAmt.toFixed(2)}" oninput="calculateRowTotalsFromAmt(${rowId})">
                 </td>
                 <td class="text-end fw-semibold">
                     ₹<span class="row-total">${parseFloat(item.totalAmount).toFixed(2)}</span>
                     <input type="hidden" name="total_amount[]" class="row-total-input" value="${parseFloat(item.totalAmount).toFixed(2)}">
                 </td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" onclick="removeItemRow(${rowId})">
-                        <i class="bi bi-x"></i>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeItemRow(${rowId})">
+                        <i class="bi bi-trash"></i>
                     </button>
                 </td>
             </tr>
         `;
         tableBody.insertAdjacentHTML('beforeend', rowHTML);
 
-        // Bind Searchable Combobox to the Row
         const row = document.getElementById(`item-row-${rowId}`);
         const productSearchInput = row.querySelector(".product-search-input");
         setupCombobox(
             productSearchInput, 
             productList, 
-            (id, name) => onProductSelect(rowId, id),
-            () => {
-                activeRowIdForProduct = rowId;
-                openProductModal();
-            }
+            (id) => onProductSelect(rowId, id),
+            () => openProductModal(rowId)
         );
-        calculateRowTotals(rowId);
+
+        bindRowFocusAndNavigation(rowId);
+
+        // Populate database rates from backend database history
+        fetch(`/api/product/${item.productId}/last-purchase/`)
+            .then(res => res.json())
+            .then(data => {
+                mockLastPurchaseRates[item.productId] = data.last_purchase_rate;
+                calculateRowTotals(rowId);
+                updateLiveMarginInspect(rowId);
+            });
     }
 
     function removeItemRow(id) {
-        document.getElementById(`item-row-${id}`).remove();
-        recalculateInvoiceSummary();
+        const row = document.getElementById(`item-row-${id}`);
+        if (row) {
+            row.remove();
+            recalculateInvoiceSummary();
+            updateProductInspector(null);
+        }
+    }
+
+    // Keyboard navigation
+    const inputsInRow = [
+        "product-search-input",
+        "batch-input",
+        "expiry-mask-input",
+        "mrp-input",
+        "prate-input",
+        "srate-input",
+        "wrate-input",
+        "qty-input",
+        "free-input",
+        "disc-input",
+        "disc-amt-input"
+    ];
+
+    function bindRowFocusAndNavigation(rowId) {
+        const row = document.getElementById(`item-row-${rowId}`);
+        if (!row) return;
+
+        row.querySelectorAll("input").forEach(input => {
+            input.addEventListener("focus", () => {
+                document.querySelectorAll("#invoiceTable tbody tr").forEach(tr => {
+                    tr.classList.remove("active-row");
+                });
+                row.classList.add("active-row");
+                updateProductInspector(rowId);
+            });
+
+            input.addEventListener("keydown", (e) => {
+                const currentClass = inputsInRow.find(cls => input.classList.contains(cls));
+                if (!currentClass) return;
+
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    const nextRow = document.getElementById(`item-row-${rowId + 1}`);
+                    if (nextRow) {
+                        const targetInput = nextRow.querySelector(`.${currentClass}`);
+                        if (targetInput) {
+                            targetInput.focus();
+                            if (targetInput.select) targetInput.select();
+                        }
+                    }
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    const prevRow = document.getElementById(`item-row-${rowId - 1}`);
+                    if (prevRow) {
+                        const targetInput = prevRow.querySelector(`.${currentClass}`);
+                        if (targetInput) {
+                            targetInput.focus();
+                            if (targetInput.select) targetInput.select();
+                        }
+                    }
+                } else if (e.key === "Enter") {
+                    const container = input.closest(".combobox-container");
+                    if (container) {
+                        const menu = container.querySelector(".combobox-menu");
+                        if (menu && menu.style.display !== "none") {
+                            return; 
+                        }
+                    }
+
+                    e.preventDefault();
+                    const idx = inputsInRow.indexOf(currentClass);
+                    if (idx < inputsInRow.length - 1) {
+                        const nextClass = inputsInRow[idx + 1];
+                        const nextInput = row.querySelector(`.${nextClass}`);
+                        if (nextInput) {
+                            nextInput.focus();
+                            if (nextInput.select) nextInput.select();
+                        }
+                    } else {
+                        if (validateRow(rowId)) {
+                            addNewItemRow();
+                            setTimeout(() => {
+                                const trs = document.querySelectorAll("#invoiceTable tbody tr");
+                                const nextTr = trs[trs.length - 1];
+                                if (nextTr) {
+                                    const nextInput = nextTr.querySelector(".product-search-input");
+                                    if (nextInput) nextInput.focus();
+                                }
+                            }, 50);
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Docked inspector updates
+    function updateProductInspector(rowId) {
+        const placeholder = document.getElementById("inspectorPlaceholder");
+        const content = document.getElementById("inspectorContent");
+
+        if (rowId === null) {
+            placeholder.classList.remove("d-none");
+            content.classList.add("d-none");
+            return;
+        }
+
+        const row = document.getElementById(`item-row-${rowId}`);
+        if (!row) return;
+
+        const productId = row.querySelector(".select-product").value;
+        if (!productId) {
+            placeholder.classList.remove("d-none");
+            content.classList.add("d-none");
+            return;
+        }
+
+        placeholder.classList.add("d-none");
+        content.classList.remove("d-none");
+
+        const product = productCatalog[productId];
+        document.getElementById("inspectProductName").textContent = product.name;
+        document.getElementById("inspectProductPack").textContent = product.pack;
+        document.getElementById("inspectProductGst").textContent = product.gst;
+
+        const mrp = parseFloat(row.querySelector(".mrp-input").value) || 0;
+        const prate = parseFloat(row.querySelector(".prate-input").value) || 0;
+        const srate = parseFloat(row.querySelector(".srate-input").value) || 0;
+
+        // Calc Margin & Profit
+        const stockistProfit = srate - prate;
+        const retailerProfit = mrp - srate;
+        
+        let stockistMargin = 0;
+        let retailerMargin = 0;
+        if (srate > 0) stockistMargin = (stockistProfit / srate) * 100;
+        if (mrp > 0) retailerMargin = (retailerProfit / mrp) * 100;
+
+        const stockistEl = document.getElementById("liveStockistMargin");
+        const retailerEl = document.getElementById("liveRetailerMargin");
+        if (stockistEl) stockistEl.textContent = `${stockistMargin.toFixed(1)}% (Profit: ₹${stockistProfit.toFixed(2)})`;
+        if (retailerEl) retailerEl.textContent = `${retailerMargin.toFixed(1)}% (Profit: ₹${retailerProfit.toFixed(2)})`;
+
+        const lastPRate = mockLastPurchaseRates[productId] !== undefined ? mockLastPurchaseRates[productId] : 0.00;
+        const lastPRateEl = document.getElementById("liveLastPRate");
+        if (lastPRateEl) lastPRateEl.textContent = "₹" + lastPRate.toFixed(2);
+
+        const alertEl = document.getElementById("priceAlertText");
+        const lossEl = document.getElementById("liveMarginLoss");
+        if (lastPRate > 0 && prate > lastPRate) {
+            if (alertEl) alertEl.classList.remove("d-none");
+            if (lossEl) lossEl.textContent = "₹" + (prate - lastPRate).toFixed(2);
+            row.querySelector(".prate-input").classList.add("border-danger");
+        } else {
+            if (alertEl) alertEl.classList.add("d-none");
+            row.querySelector(".prate-input").classList.remove("border-danger");
+        }
+    }
+
+    function updateLiveMarginInspect(id) {
+        updateProductInspector(id);
     }
 
     function onProductSelect(id, selectedProdId) {
@@ -567,21 +873,57 @@
         const gstInput = row.querySelector(".gst-input");
         const gstDisplay = row.querySelector(".gst-display");
         
-        if (!selectedProdId) {
+        if (selectedProdId && productCatalog[selectedProdId]) {
+            const product = productCatalog[selectedProdId];
+            gstInput.value = product.gst;
+            gstDisplay.value = product.gst + "%";
+
+            // Fetch actual live last purchase rate from backend database history
+            fetch(`/api/product/${selectedProdId}/last-purchase/`)
+                .then(res => res.json())
+                .then(data => {
+                    mockLastPurchaseRates[selectedProdId] = data.last_purchase_rate;
+                    updateLiveMarginInspect(id);
+                });
+        } else {
             gstInput.value = "12.00";
             gstDisplay.value = "12%";
-            calculateRowTotals(id);
-            return;
         }
+        calculateRowTotals(id);
+        updateLiveMarginInspect(id);
+    }
 
-        const product = productCatalog[selectedProdId];
-        gstInput.value = product.gst;
-        gstDisplay.value = product.gst + "%";
+    function calculateRowTotalsFromPct(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        if (!row) return;
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        const purchaseRate = parseFloat(row.querySelector(".prate-input").value) || 0;
+        const discountPct = parseFloat(row.querySelector(".disc-input").value) || 0;
         
+        const baseTaxable = qty * purchaseRate;
+        const discountAmount = baseTaxable * (discountPct / 100);
+        
+        row.querySelector(".disc-amt-input").value = discountAmount.toFixed(2);
         calculateRowTotals(id);
     }
 
-    // ==================== CALCULATION ENGINE ====================
+    function calculateRowTotalsFromAmt(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        if (!row) return;
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        const purchaseRate = parseFloat(row.querySelector(".prate-input").value) || 0;
+        const discountAmount = parseFloat(row.querySelector(".disc-amt-input").value) || 0;
+        
+        const baseTaxable = qty * purchaseRate;
+        let discountPct = 0;
+        if (baseTaxable > 0) {
+            discountPct = (discountAmount / baseTaxable) * 100;
+        }
+        
+        row.querySelector(".disc-input").value = discountPct.toFixed(2);
+        calculateRowTotals(id);
+    }
+
     function calculateRowTotals(id) {
         const row = document.getElementById(`item-row-${id}`);
         const qty = parseInt(row.querySelector(".qty-input").value) || 0;
@@ -606,68 +948,188 @@
         recalculateInvoiceSummary();
     }
 
+    function onBillDiscountPctChange() {
+        const pct = parseFloat(document.getElementById("billDiscountPct").value) || 0;
+        let totalVal = 0;
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
+            totalVal += parseFloat(row.dataset.total) || 0;
+        });
+        const amt = totalVal * (pct / 100);
+        document.getElementById("billDiscountAmt").value = amt.toFixed(2);
+        recalculateInvoiceSummary();
+    }
+
+    function onBillDiscountAmtChange() {
+        const amt = parseFloat(document.getElementById("billDiscountAmt").value) || 0;
+        let totalVal = 0;
+        document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
+            totalVal += parseFloat(row.dataset.total) || 0;
+        });
+        let pct = 0;
+        if (totalVal > 0) {
+            pct = (amt / totalVal) * 100;
+        }
+        document.getElementById("billDiscountPct").value = pct.toFixed(1);
+        recalculateInvoiceSummary();
+    }
+
     function recalculateInvoiceSummary() {
         let grossTaxableTotal = 0;
+        let discountTotal = 0;
         let gstTotal = 0;
+        let netPayable = 0;
         
         document.querySelectorAll("#invoiceTable tbody tr").forEach(row => {
             grossTaxableTotal += parseFloat(row.dataset.taxable) || 0;
+            discountTotal += parseFloat(row.dataset.discount) || 0;
             gstTotal += parseFloat(row.dataset.gst) || 0;
+            netPayable += parseFloat(row.dataset.total) || 0;
         });
-        
-        const flatDiscount = parseFloat(document.getElementById("inputDiscount").value) || 0;
-        const netPayable = grossTaxableTotal + gstTotal - flatDiscount;
+
+        // Bill Discount (Discount on Total Bill)
+        const pct = parseFloat(document.getElementById("billDiscountPct").value) || 0;
+        if (pct > 0) {
+            const amt = netPayable * (pct / 100);
+            document.getElementById("billDiscountAmt").value = amt.toFixed(2);
+        }
+        const billDiscountAmt = parseFloat(document.getElementById("billDiscountAmt").value) || 0;
+
+        const finalNetPayable = netPayable - billDiscountAmt;
+        const totalCombinedDiscount = discountTotal + billDiscountAmt;
         
         document.getElementById("summaryGross").textContent = grossTaxableTotal.toFixed(2);
+        document.getElementById("summaryDiscount").textContent = discountTotal.toFixed(2);
         document.getElementById("summaryGst").textContent = gstTotal.toFixed(2);
-        document.getElementById("summaryNet").textContent = netPayable.toFixed(2);
+        document.getElementById("summaryNet").textContent = finalNetPayable.toFixed(2);
         
         document.getElementById("inputGross").value = grossTaxableTotal.toFixed(2);
+        document.getElementById("inputDiscount").value = totalCombinedDiscount.toFixed(2);
         document.getElementById("inputGst").value = gstTotal.toFixed(2);
-        document.getElementById("inputNet").value = netPayable.toFixed(2);
+        document.getElementById("inputNet").value = finalNetPayable.toFixed(2);
     }
 
-    function updateLiveMarginInspect(id) {
-        // Disabled
-    }
-
-    // ==================== KEYBOARD NAVIGATION & VALIDATION ====================
     function formatExpiry(input, id) {
         let val = input.value.replace(/\D/g, '');
         if (val.length > 4) val = val.substring(0, 4);
         if (val.length > 2) {
-            val = val.substring(0,2) + "/" + val.substring(2);
-        }
-        input.value = val;
-        
-        const row = document.getElementById(`item-row-${id}`);
-        const hiddenRealDate = row.querySelector(".expiry-real-date");
-        
-        if (val.length === 5) {
-            const parts = val.split("/");
-            const month = parts[0];
-            const year = "20" + parts[1];
-            
-            // Set real date field to last day of expiry month
-            const lastDay = new Date(year, month, 0).getDate();
-            hiddenRealDate.value = `${year}-${month}-${lastDay}`;
+            input.value = val.substring(0, 2) + '/' + val.substring(2);
         } else {
-            hiddenRealDate.value = "";
+            input.value = val;
+        }
+        
+        const realDateInput = input.closest("tr").querySelector(".expiry-real-date");
+        if (val.length === 4) {
+            const resolved = resolveExpiryDate(val);
+            realDateInput.value = resolved || "";
+        } else {
+            realDateInput.value = "";
         }
     }
+
+    function resolveExpiryDate(mmyyText) {
+        const month = parseInt(mmyyText.substring(0, 2));
+        const yearShort = parseInt(mmyyText.substring(2, 4));
+        if (isNaN(month) || isNaN(yearShort) || month < 1 || month > 12) return null;
+        const year = 2000 + yearShort; 
+        const date = new Date(year, month, 0); 
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function validateRow(id) {
+        const row = document.getElementById(`item-row-${id}`);
+        if (!row) return false;
+        
+        const product = row.querySelector(".select-product").value;
+        if (!product) {
+            showToast("Product is required for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".product-search-input").focus();
+            return false;
+        }
+        
+        const batch = row.querySelector(".batch-input").value.trim();
+        if (!batch) {
+            showToast("Batch Number is required for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".batch-input").focus();
+            return false;
+        }
+        
+        const expiryMask = row.querySelector(".expiry-mask-input").value.trim();
+        const expiryReal = row.querySelector(".expiry-real-date").value;
+        if (!expiryMask || !expiryReal) {
+            showToast("Expiry Date in MM/YY format is required (e.g. 12/28) for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".expiry-mask-input").focus();
+            return false;
+        }
+        
+        const mrp = parseFloat(row.querySelector(".mrp-input").value) || 0;
+        if (mrp <= 0) {
+            showToast("MRP must be greater than 0 for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".mrp-input").focus();
+            return false;
+        }
+        
+        const prate = parseFloat(row.querySelector(".prate-input").value) || 0;
+        if (prate <= 0) {
+            showToast("Purchase Rate must be greater than 0 for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".prate-input").focus();
+            return false;
+        }
+        
+        const qty = parseInt(row.querySelector(".qty-input").value) || 0;
+        if (qty <= 0) {
+            showToast("Quantity must be greater than 0 for row " + (parseInt(id) + 1), "danger");
+            row.querySelector(".qty-input").focus();
+            return false;
+        }
+        
+        return true;
+    }
+
+    document.getElementById("entryForm").addEventListener("submit", function(e) {
+        const rows = document.querySelectorAll("#invoiceTable tbody tr");
+        if (rows.length === 0) {
+            e.preventDefault();
+            showToast("Please add at least one item.", "danger");
+            return;
+        }
+        
+        for (let i = 0; i < rows.length; i++) {
+            const rowId = rows[i].id.replace("item-row-", "");
+            if (!validateRow(rowId)) {
+                e.preventDefault();
+                return;
+            }
+        }
+    });
 
     document.addEventListener("keydown", function(e) {
         if (e.key === "F2") {
             e.preventDefault();
             addNewItemRow();
             setTimeout(() => {
-                const rows = document.querySelectorAll("#invoiceTable tbody tr");
-                if (rows.length > 0) {
-                    rows[rows.length - 1].querySelector(".product-search-input").focus();
-                }
+                const trs = document.querySelectorAll("#invoiceTable tbody tr");
+                const nextTr = trs[trs.length - 1];
+                nextTr.querySelector(".product-search-input").focus();
             }, 50);
         }
     });
+
+    // ==================== AJAX QUICK SUPPLIER ADD & PRODUCT ADD ====================
+    let activeRowIdForProduct = null;
+
+    function openProductModal(rowId) {
+        activeRowIdForProduct = rowId;
+        const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+        modal.show();
+    }
+
+    function openSupplierModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addSupplierModal'));
+        modal.show();
+    }
 
     window.onload = function() {
         setupCombobox(
@@ -679,11 +1141,8 @@
             () => openSupplierModal()
         );
 
-        // Populate existing items
-        if (existingItems && existingItems.length > 0) {
-            existingItems.forEach(item => {
-                addExistingItemRow(item);
-            });
+        if (existingItems.length > 0) {
+            existingItems.forEach(item => addExistingItemRow(item));
         } else {
             addNewItemRow();
         }
@@ -692,16 +1151,18 @@
             document.getElementById("supplierSearch").focus();
         }, 100);
 
-        // Populate Add Product Modal company & type options
+        // Load options
         fetch('/product/create/')
             .then(res => res.text())
             .then(html => {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
+                
                 const compSelect = document.getElementById("prodCompany");
                 doc.querySelectorAll("select[name='company'] option").forEach(opt => {
                     if (opt.value) compSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
                 });
+
                 const typeSelect = document.getElementById("prodType");
                 doc.querySelectorAll("select[name='product_type'] option").forEach(opt => {
                     if (opt.value) typeSelect.insertAdjacentHTML('beforeend', `<option value="${opt.value}">${opt.textContent.trim()}</option>`);
@@ -709,7 +1170,6 @@
             });
     };
 
-    // Quick Supplier Form Submit
     document.getElementById("quickSupplierForm").addEventListener("submit", function(e) {
         e.preventDefault();
         const name = document.getElementById("suppName").value;
@@ -738,19 +1198,15 @@
         .then(data => {
             if (data.status === "success") {
                 supplierList.push({ id: data.id, name: data.name });
-                
                 document.getElementById("supplierSelect").value = data.id;
                 document.getElementById("supplierSearch").value = data.name;
-                
                 bootstrap.Modal.getInstance(document.getElementById('addSupplierModal')).hide();
                 showToast(`Supplier "${data.name}" added successfully!`, "success");
-                
                 document.getElementById("invoiceNumber").focus();
             }
         });
     });
 
-    // Quick Product Form Submit
     document.getElementById("quickProductForm").addEventListener("submit", function(e) {
         e.preventDefault();
         const name = document.getElementById("prodName").value;
@@ -802,15 +1258,5 @@
             }
         });
     });
-
-    function openSupplierModal() {
-        const modal = new bootstrap.Modal(document.getElementById('addSupplierModal'));
-        modal.show();
-    }
-
-    function openProductModal() {
-        const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
-        modal.show();
-    }
 </script>
 {% endblock %}
