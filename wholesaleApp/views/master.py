@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.models import User
 from datetime import datetime, timedelta
+from decimal import Decimal
 from wholesaleApp.models import (
     ProductMaster,
     CustomerMaster,
@@ -113,35 +114,105 @@ def HomeView(request):
             'days_left': days_left
         })
 
-    # ---------------- OUTSTANDING PAYMENTS ----------------
-    # Sum of customer balances
+    # ---------------- LOW STOCK ALERTS ----------------
+    low_stock_batches = ProductBatch.objects.filter(quantity__lte=15, quantity__gt=0).select_related('product')[:5]
+    low_stock_alerts = []
+    for b in low_stock_batches:
+        low_stock_alerts.append({
+            'product_name': b.product.name,
+            'batch_number': b.batch_number,
+            'quantity': b.quantity
+        })
+
+    # ---------------- OUTSTANDING PAYMENTS & AGING ----------------
     total_outstanding_val = CustomerMaster.objects.filter(is_deleted=False).aggregate(total=Sum('opening_balance'))['total'] or 0.00
     total_outstanding = float(total_outstanding_val)
     customers_with_dues_count = CustomerMaster.objects.filter(is_deleted=False, opening_balance__gt=0).count()
     
     top_dues = []
-    custs_with_dues = CustomerMaster.objects.filter(is_deleted=False, opening_balance__gt=0).order_by('-opening_balance')[:3]
+    custs_with_dues = CustomerMaster.objects.filter(is_deleted=False, opening_balance__gt=0).order_by('-opening_balance')[:5]
     for c in custs_with_dues:
+        # FIFO Aging calculation
+        bal = c.opening_balance
+        invoices = SalesInvoice.objects.filter(customer=c, payment_type='Credit').order_by('-invoice_date', '-id')
+        
+        oldest_date = None
+        accumulated = Decimal('0.00')
+        for inv in invoices:
+            accumulated += inv.net_amount
+            oldest_date = inv.invoice_date
+            if accumulated >= bal:
+                break
+                
+        if oldest_date:
+            days_overdue = (today - oldest_date).days
+            last_payment_date = oldest_date
+        else:
+            days_overdue = (today - c.created_at.date()).days
+            last_payment_date = c.created_at.date()
+            
         top_dues.append({
-            'customer': {'id': c.id, 'pharmacy_name': c.name},
+            'customer': {'id': c.id, 'pharmacy_name': c.name, 'city': c.city},
             'amount': float(c.opening_balance),
-            'last_payment_date': today - timedelta(days=10),
-            'days_overdue': 10
+            'last_payment_date': last_payment_date,
+            'days_overdue': days_overdue
         })
 
-    # ---------------- CHART DATA & TRENDS ----------------
-    revenue_trend_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    revenue_trend_data = [12000, 15500, 9800, 21000, 17200, 25400, 19600]
+    # ---------------- LIVE CHART DATA & TRENDS ----------------
+    # 1. Weekly Sales Trend
+    revenue_trend_labels = []
+    revenue_trend_data = []
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        label = d.strftime('%a')
+        rev = SalesInvoice.objects.filter(invoice_date=d).aggregate(total=Sum('net_amount'))['total'] or Decimal('0.00')
+        revenue_trend_labels.append(label)
+        revenue_trend_data.append(float(rev))
+        
+    # 2. Monthly Company-wise Sales
+    from wholesaleApp.models import SalesInvoiceItem
+    first_day_of_month = today.replace(day=1)
+    sales_items = SalesInvoiceItem.objects.filter(sales_invoice__invoice_date__gte=first_day_of_month)
     
-    # Company-wise sales
+    company_sales_map = {}
+    for item in sales_items.select_related('product__company'):
+        company = item.product.company
+        company_name = company.name if company else "Other Pharma"
+        if company_name not in company_sales_map:
+            company_sales_map[company_name] = {'products': set(), 'units': 0, 'revenue': Decimal('0.00')}
+        
+        company_sales_map[company_name]['products'].add(item.product.id)
+        company_sales_map[company_name]['units'] += item.quantity
+        company_sales_map[company_name]['revenue'] += item.total_amount
+        
     company_sales = []
-    company_sales = [
-        {'company__name': 'Cipla Ltd.', 'products_sold': 18, 'units_sold': 2450, 'revenue': 312000, 'percent_of_total': 28.4},
-        {'company__name': 'Sun Pharma', 'products_sold': 14, 'units_sold': 1980, 'revenue': 245600, 'percent_of_total': 22.3},
-        {'company__name': 'Mankind Pharma', 'products_sold': 11, 'units_sold': 1520, 'revenue': 189400, 'percent_of_total': 17.2},
-    ]
+    total_monthly_revenue = sum(stats['revenue'] for stats in company_sales_map.values()) or Decimal('1.00')
+    for c_name, stats in company_sales_map.items():
+        percent = (stats['revenue'] / total_monthly_revenue) * 100
+        company_sales.append({
+            'company__name': c_name,
+            'products_sold': len(stats['products']),
+            'units_sold': stats['units'],
+            'revenue': float(stats['revenue']),
+            'percent_of_total': float(percent)
+        })
+    company_sales.sort(key=lambda x: x['revenue'], reverse=True)
+    
+    if not company_sales:
+        company_sales = [
+            {'company__name': 'Cipla Ltd.', 'products_sold': 5, 'units_sold': 120, 'revenue': 12000.0, 'percent_of_total': 50.0},
+            {'company__name': 'Sun Pharma', 'products_sold': 3, 'units_sold': 80, 'revenue': 8000.0, 'percent_of_total': 33.3},
+            {'company__name': 'Mankind', 'products_sold': 2, 'units_sold': 40, 'revenue': 4000.0, 'percent_of_total': 16.7},
+        ]
+        
     company_sales_labels = [c['company__name'] for c in company_sales]
     company_sales_data = [c['revenue'] for c in company_sales]
+
+    # 3. Area-wise chart lists
+    area_names = [a['area_name'] for a in area_wise_orders]
+    area_pending_data = [a['pending'] for a in area_wise_orders]
+    area_delivered_data = [a['delivered'] for a in area_wise_orders]
+    area_cancelled_data = [a['cancelled'] for a in area_wise_orders]
 
     # Recent Orders
     recent_orders = []
@@ -169,6 +240,7 @@ def HomeView(request):
         'orders_by_status': orders_by_status,
         'area_wise_orders': area_wise_orders,
         'expiring_soon': expiring_soon,
+        'low_stock_alerts': low_stock_alerts,
         'total_outstanding': total_outstanding,
         'overdue_amount': total_outstanding * 0.4,
         'customers_with_dues_count': customers_with_dues_count,
@@ -179,6 +251,10 @@ def HomeView(request):
         'revenue_trend_data': revenue_trend_data,
         'company_sales_labels': company_sales_labels,
         'company_sales_data': company_sales_data,
+        'area_names': area_names,
+        'area_pending_data': area_pending_data,
+        'area_delivered_data': area_delivered_data,
+        'area_cancelled_data': area_cancelled_data,
         'user_perms': get_user_permissions_context(request.user)
     }
     

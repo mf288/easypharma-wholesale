@@ -1,405 +1,452 @@
-{% extends 'base.html' %}
+{% extends 'includes/base.html' %}
 
 {% block title %}Dashboard - EasyPharma Wholesale{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+    }
+    .gradient-purple {
+        background: linear-gradient(135deg, #7928ca, #b06ab3);
+    }
+    .gradient-red {
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    }
+    .gradient-green {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+    }
+    .gradient-blue {
+        background: linear-gradient(135deg, #00c6ff, #0072ff);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .progress-track {
+        height: 6px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        background: #10b981;
+        border-radius: 10px;
+    }
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .status-pending { background-color: #fef3c7; color: #d97706; }
+    .status-completed { background-color: #d1fae5; color: #059669; }
+    .status-cancelled { background-color: #fee2e2; color: #dc2626; }
+    
+    @media print {
+        .no-print { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .sidebar { display: none !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 
 <!-- ============================================= -->
-<!-- KEY METRICS -->
+<!-- TOP ROW: HIGH-LEVEL KPI METRICS -->
 <!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>Key Metrics</h2>
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Total Products</div>
-            <div class="stat-value">{{ total_products }}</div>
-        </div>
-        <div class="stat-card success">
-            <div class="stat-label">Total Customers</div>
-            <div class="stat-value">{{ total_customers }}</div>
-        </div>
-        <div class="stat-card warning">
-            <div class="stat-label">Total Orders</div>
-            <div class="stat-value">{{ total_orders }}</div>
-        </div>
-        <div class="stat-card danger">
-            <div class="stat-label">Total Revenue</div>
-            <div class="stat-value">₹{{ total_revenue|floatformat:0 }}</div>
-        </div>
-    </div>
-</div>
-
-<!-- ============================================= -->
-<!-- TODAY'S SNAPSHOT -->
-<!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>Today's Snapshot</h2>
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Today's Orders</div>
-            <div class="stat-value">{{ todays_orders_count }}</div>
-            <div class="stat-sub {% if todays_orders_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
-                {% if todays_orders_change >= 0 %}▲{% else %}▼{% endif %} {{ todays_orders_change }}% vs yesterday
+<div class="row g-4 mb-4 mt-1">
+    <div class="col-md-3">
+        <div class="card border-0 rounded-4 shadow-sm text-white gradient-purple p-4 dashboard-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-white-50 small fw-bold uppercase">Total Revenue</span>
+                    <h3 class="fw-bold mb-0 mt-1">₹{{ total_revenue|floatformat:0 }}</h3>
+                </div>
+                <div class="bg-white bg-opacity-20 p-3 rounded-4">
+                    <i class="bi bi-currency-rupee fs-3"></i>
+                </div>
             </div>
         </div>
-        <div class="stat-card success">
-            <div class="stat-label">Today's Revenue</div>
-            <div class="stat-value">₹{{ todays_revenue|floatformat:0 }}</div>
-            <div class="stat-sub {% if todays_revenue_change >= 0 %}trend-up{% else %}trend-down{% endif %}">
-                {% if todays_revenue_change >= 0 %}▲{% else %}▼{% endif %} {{ todays_revenue_change }}% vs yesterday
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 rounded-4 shadow-sm text-white gradient-red p-4 dashboard-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-white-50 small fw-bold uppercase">Outstanding Dues</span>
+                    <h3 class="fw-bold mb-0 mt-1">₹{{ total_outstanding|floatformat:0 }}</h3>
+                </div>
+                <div class="bg-white bg-opacity-20 p-3 rounded-4">
+                    <i class="bi bi-wallet2 fs-3"></i>
+                </div>
             </div>
         </div>
-        <div class="stat-card warning">
-            <div class="stat-label">Avg. Order Value</div>
-            <div class="stat-value">₹{{ avg_order_value|floatformat:0 }}</div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 rounded-4 shadow-sm text-white gradient-green p-4 dashboard-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-white-50 small fw-bold uppercase">Active Retailers</span>
+                    <h3 class="fw-bold mb-0 mt-1">{{ total_customers }}</h3>
+                </div>
+                <div class="bg-white bg-opacity-20 p-3 rounded-4">
+                    <i class="bi bi-people-fill fs-3"></i>
+                </div>
+            </div>
         </div>
-        <div class="stat-card danger">
-            <div class="stat-label">Out of Stock Items</div>
-            <div class="stat-value">{{ out_of_stock_count }}</div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 rounded-4 shadow-sm text-white gradient-blue p-4 dashboard-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-white-50 small fw-bold uppercase">Product SKUs</span>
+                    <h3 class="fw-bold mb-0 mt-1">{{ total_products }}</h3>
+                </div>
+                <div class="bg-white bg-opacity-20 p-3 rounded-4">
+                    <i class="bi bi-box-seam-fill fs-3"></i>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- ============================================= -->
-<!-- CHARTS -->
+<!-- SECOND ROW: TODAY'S SNAPSHOT GRID -->
 <!-- ============================================= -->
-<div class="charts-grid">
-    <div class="card chart-card">
-        <div class="card-header">
-            <h2>Revenue Trend (Last 7 Days)</h2>
-        </div>
-        <div class="chart-wrap">
-            <canvas id="revenueTrendChart"></canvas>
-        </div>
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-calendar2-day text-primary me-2"></i>Today's Snapshot</h5>
     </div>
-
-    <div class="card chart-card">
-        <div class="card-header">
-            <h2>Order Status Breakdown</h2>
-        </div>
-        <div class="chart-wrap">
-            <canvas id="orderStatusChart"></canvas>
-        </div>
-    </div>
-</div>
-
-<div class="card chart-card">
-    <div class="card-header">
-        <h2>Company-wise Sales (This Month)</h2>
-    </div>
-    <div class="chart-wrap chart-wrap-wide">
-        <canvas id="topProductsChart"></canvas>
-    </div>
-</div>
-
-<!-- ============================================= -->
-<!-- ORDER STATUS OVERVIEW -->
-<!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>Order Status Overview</h2>
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Pending Orders</div>
-            <div class="stat-value" style="color: #ffc107;">{{ orders_by_status.Pending }}</div>
-        </div>
-        <div class="stat-card success">
-            <div class="stat-label">Completed Orders</div>
-            <div class="stat-value" style="color: #28a745;">{{ orders_by_status.Completed }}</div>
-        </div>
-        <div class="stat-card danger">
-            <div class="stat-label">Cancelled Orders</div>
-            <div class="stat-value" style="color: #dc3545;">{{ orders_by_status.Cancelled }}</div>
+    <div class="card-body pt-1 pb-4">
+        <div class="row g-4 text-center">
+            <div class="col-md-3 border-end">
+                <span class="text-muted small">Today's Sales</span>
+                <h4 class="fw-bold text-primary mb-0 mt-1">₹{{ todays_revenue|floatformat:0 }}</h4>
+            </div>
+            <div class="col-md-3 border-end">
+                <span class="text-muted small">Today's Bills</span>
+                <h4 class="fw-bold text-dark mb-0 mt-1">{{ todays_orders_count }}</h4>
+            </div>
+            <div class="col-md-3 border-end">
+                <span class="text-muted small">Avg. Bill Value</span>
+                <h4 class="fw-bold text-success mb-0 mt-1">₹{{ avg_order_value|floatformat:0 }}</h4>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small">Out of Stock Items</span>
+                <h4 class="fw-bold text-danger mb-0 mt-1">{{ out_of_stock_count }}</h4>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- ============================================= -->
-<!-- AREA-WISE ORDERS -->
+<!-- THIRD ROW: VISUAL ANALYTICS (CHARTS) -->
 <!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>📍 Area-wise Orders</h2>
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 py-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Weekly Revenue Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="revenueTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 py-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Order Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="orderStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 py-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Pharma Brands Revenue Share</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom-0 py-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-geo-alt-fill text-primary me-2"></i>Area-wise Orders Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="areaOrdersChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================= -->
+<!-- FOURTH ROW: OUTSTANDING DUES & AREA LOGISTICS -->
+<!-- ============================================= -->
+<div class="row g-4 mb-4">
+    <!-- Top Receivables/Aging -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-hourglass-split text-danger me-2"></i>Aging Receivables (Top Dues)</h5>
+                <a href="{% url 'report_outstanding' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 no-print">Outstanding report</a>
+            </div>
+            <div class="card-body p-0">
+                {% if top_dues %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Chemist / Pharmacy</th>
+                                    <th>Oldest Bill Date</th>
+                                    <th>Days Pending</th>
+                                    <th>Total Dues</th>
+                                    <th class="pe-4 text-center no-print">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for due in top_dues %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <strong>{{ due.customer.pharmacy_name }}</strong>
+                                            <div class="text-muted small">{{ due.customer.city }}</div>
+                                        </td>
+                                        <td class="font-monospace">{{ due.last_payment_date|date:"d-m-Y" }}</td>
+                                        <td>
+                                            <span class="badge {% if due.days_overdue > 30 %}bg-danger{% else %}bg-warning text-dark{% endif %} font-monospace">
+                                                {{ due.days_overdue }} Days
+                                            </span>
+                                        </td>
+                                        <td class="fw-bold text-primary">₹{{ due.amount|floatformat:2 }}</td>
+                                        <td class="pe-4 text-center no-print">
+                                            <a href="{% url 'customer_ledger' %}?customer={{ due.customer.id }}" class="btn btn-sm btn-light border rounded-pill px-3">
+                                                <i class="bi bi-eye"></i> Ledger
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-center py-5 text-muted mb-0">No outstanding customer balances!</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
-    {% if area_wise_orders %}
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Area</th>
-                        <th>Total Orders</th>
-                        <th>Pending</th>
-                        <th>Delivered</th>
-                        <th>Cancelled</th>
-                        <th>Delivery Progress</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for area in area_wise_orders %}
+    <!-- Area-wise Logistical progress -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-3 border-bottom-0">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-truck text-primary me-2"></i>Today's Area Logistics</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if area_wise_orders %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Area / Location</th>
+                                    <th>Orders</th>
+                                    <th class="pe-4">Delivery Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for area in area_wise_orders %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <strong>{{ area.area_name }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-secondary font-monospace">{{ area.total_orders }} Invoices</span>
+                                        </td>
+                                        <td class="pe-4" style="min-width: 140px;">
+                                            <div class="progress-track mb-1">
+                                                <div class="progress-fill" style="width: {{ area.delivered_percent }}%;"></div>
+                                            </div>
+                                            <span class="small text-muted font-monospace">{{ area.delivered_percent|floatformat:0 }}% delivered</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-center py-5 text-muted mb-0">No orders placed today.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================= -->
+<!-- FIFTH ROW: LOW STOCK & EXPIRY ALERTS -->
+<!-- ============================================= -->
+<div class="row g-4 mb-4">
+    <!-- Expiry Alerts -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-calendar-x-fill text-warning me-2"></i>Expiry Alerts (180 Days)</h5>
+                <a href="{% url 'product_list' %}?filter=expiring" class="btn btn-sm btn-outline-primary rounded-pill px-3 no-print">View Expiring</a>
+            </div>
+            <div class="card-body p-0">
+                {% if expiring_soon %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Product Name</th>
+                                    <th>Batch No</th>
+                                    <th>Stock</th>
+                                    <th class="pe-4">Days Left</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in expiring_soon %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <strong>{{ item.product.name }}</strong>
+                                        </td>
+                                        <td><span class="badge bg-light text-dark border font-monospace">{{ item.batch_number }}</span></td>
+                                        <td>{{ item.stock_quantity }} units</td>
+                                        <td class="pe-4">
+                                            <span class="badge {% if item.days_left <= 30 %}bg-danger{% elif item.days_left <= 90 %}bg-warning text-dark{% else %}bg-info{% endif %} font-monospace">
+                                                {{ item.days_left }} Days
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-center py-5 text-muted mb-0">No batches nearing expiry! 🎉</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alerts -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-3 border-bottom-0">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-graph-down-arrow text-danger me-2"></i>Low Stock Alerts (Qty &le; 15)</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if low_stock_alerts %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Product Name</th>
+                                    <th>Batch No</th>
+                                    <th class="pe-4">Current Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in low_stock_alerts %}
+                                    <tr>
+                                        <td class="ps-4"><strong>{{ item.product_name }}</strong></td>
+                                        <td><span class="badge bg-light text-dark border font-monospace">{{ item.batch_number }}</span></td>
+                                        <td class="pe-4 text-danger fw-bold font-monospace">{{ item.quantity }} packs</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-center py-5 text-muted mb-0">All products have sufficient stock levels! 🎉</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================= -->
+<!-- SIXTH ROW: RECENT BILLS / ORDERS -->
+<!-- ============================================= -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-receipt-cutoff text-primary me-2"></i>Recent Sales Bills</h5>
+        <a href="{% url 'invoice_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 no-print">View All Invoices</a>
+    </div>
+    <div class="card-body p-0">
+        {% if recent_orders %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td><strong>{{ area.area_name }}</strong></td>
-                            <td>{{ area.total_orders }}</td>
-                            <td>
-                                <span class="status-badge pending">{{ area.pending }}</span>
-                            </td>
-                            <td>
-                                <span class="status-badge delivered">{{ area.delivered }}</span>
-                            </td>
-                            <td>
-                                <span class="status-badge cancelled">{{ area.cancelled }}</span>
-                            </td>
-                            <td style="min-width: 160px;">
-                                <div class="progress-bar-track">
-                                    <div class="progress-bar-fill" style="width: {{ area.delivered_percent }}%;"></div>
-                                </div>
-                                <span style="font-size: 12px; color: #666;">{{ area.delivered_percent|floatformat:0 }}% delivered</span>
-                            </td>
+                            <th class="ps-4">Bill No</th>
+                            <th>Pharmacy Name</th>
+                            <th>Bill Date</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th class="pe-4 text-center no-print">Actions</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p style="padding: 20px; text-align: center; color: #999;">No area-wise order data available</p>
-    {% endif %}
-</div>
-
-<div class="card chart-card">
-    <div class="card-header">
-        <h2>Area-wise Order Status</h2>
-    </div>
-    <div class="chart-wrap chart-wrap-wide">
-        <canvas id="areaOrdersChart"></canvas>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                            <tr>
+                                <td class="ps-4"><strong>{{ order.id }}</strong></td>
+                                <td>{{ order.customer.pharmacy_name }}</td>
+                                <td>{{ order.order_date|date:"d M, Y" }}</td>
+                                <td class="fw-bold text-primary">₹{{ order.total_amount|floatformat:2 }}</td>
+                                <td>
+                                    <span class="status-badge {% if order.status == 'Pending' %}status-pending{% elif order.status == 'Delivered' %}status-completed{% else %}status-cancelled{% endif %}">
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                                <td class="pe-4 text-center no-print">
+                                    <a href="/invoice/print/{{ order.id }}/" class="btn btn-sm btn-light border rounded-pill px-3">
+                                        <i class="bi bi-printer"></i> Print
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-center py-5 text-muted mb-0">No sales bills created yet.</p>
+        {% endif %}
     </div>
 </div>
 
 <!-- ============================================= -->
-<!-- EXPIRY ALERTS -->
+<!-- CHART SCRIPTS & DATA BINDINGS -->
 <!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>⚠️ Expiry Alerts</h2>
-        <a href="{% url 'product_list' %}?filter=expiring" class="btn btn-primary">View All</a>
-    </div>
-
-    {% if expiring_soon %}
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Product Name</th>
-                        <th>Batch No.</th>
-                        <th>Stock Qty</th>
-                        <th>Expiry Date</th>
-                        <th>Days Left</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in expiring_soon %}
-                        <tr>
-                            <td>{{ item.product.name }}</td>
-                            <td>{{ item.batch_number }}</td>
-                            <td>{{ item.stock_quantity }}</td>
-                            <td>{{ item.expiry_date|date:"d M, Y" }}</td>
-                            <td>
-                                <span class="expiry-badge {% if item.days_left <= 30 %}danger{% elif item.days_left <= 60 %}warning{% else %}info{% endif %}">
-                                    {{ item.days_left }} days
-                                </span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p style="padding: 20px; text-align: center; color: #999;">No products nearing expiry 🎉</p>
-    {% endif %}
-</div>
-
-<!-- Baaki sections (Outstanding Payments, Company Sales, Top Customers, Recent Orders, Low Stock) bhi same tarah responsive hain -->
-
-<!-- ============================================= -->
-<!-- OUTSTANDING PAYMENTS -->
-<!-- ============================================= -->
-<div class="card">
-    <div class="card-header">
-        <h2>💰 Outstanding Payments</h2>
-        <a href="{% url 'customer_list' %}?filter=dues" class="btn btn-primary">View All</a>
-    </div>
-
-    <div class="stats-grid" style="margin-bottom: 15px;">
-        <div class="stat-card danger">
-            <div class="stat-label">Total Outstanding</div>
-            <div class="stat-value">₹{{ total_outstanding|floatformat:0 }}</div>
-        </div>
-        <div class="stat-card warning">
-            <div class="stat-label">Overdue (30+ days)</div>
-            <div class="stat-value">₹{{ overdue_amount|floatformat:0 }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Customers with Dues</div>
-            <div class="stat-value">{{ customers_with_dues_count }}</div>
-        </div>
-    </div>
-
-    {% if top_dues %}
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Pharmacy Name</th>
-                        <th>Outstanding Amount</th>
-                        <th>Last Payment Date</th>
-                        <th>Days Overdue</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for due in top_dues %}
-                        <tr>
-                            <td>{{ due.customer.pharmacy_name }}</td>
-                            <td>₹{{ due.amount|floatformat:2 }}</td>
-                            <td>{{ due.last_payment_date|date:"d M, Y" }}</td>
-                            <td>
-                                <span class="expiry-badge {% if due.days_overdue > 30 %}danger{% else %}warning{% endif %}">
-                                    {{ due.days_overdue }} days
-                                </span>
-                            </td>
-                            <td><a href="#" class="btn-view">View</a></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p style="padding: 20px; text-align: center; color: #999;">No pending dues</p>
-    {% endif %}
-</div>
-
-<!-- Baaki sections ko bhi aise hi wrap kar sakte hain `.table-responsive` mein -->
-
-<style>
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-
-    .stat-sub {
-        font-size: 12px;
-        margin-top: 4px;
-        font-weight: 600;
-    }
-
-    .trend-up { color: #28a745; }
-    .trend-down { color: #dc3545; }
-
-    .charts-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-
-    .chart-card { margin-bottom: 0; }
-
-    .chart-wrap {
-        padding: 15px;
-        height: 280px;
-        position: relative;
-    }
-
-    .chart-wrap-wide {
-        height: 320px;
-    }
-
-    .progress-bar-track {
-        width: 100%;
-        height: 8px;
-        background: #eee;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-bottom: 4px;
-    }
-
-    .progress-bar-fill {
-        height: 100%;
-        background: #28a745;
-        border-radius: 4px;
-    }
-
-    /* Table Responsiveness */
-    .table-responsive {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .table {
-        width: 100%;
-        min-width: 700px; /* Forces horizontal scroll on very small screens */
-    }
-
-    .table th, .table td {
-        padding: 12px 8px;
-        white-space: nowrap;
-    }
-
-    .status-badge, .expiry-badge {
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-weight: bold;
-        display: inline-block;
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    /* Responsive Breakpoints */
-    @media (max-width: 900px) {
-        .charts-grid { grid-template-columns: 1fr; }
-        .chart-wrap, .chart-wrap-wide { height: 250px; }
-    }
-
-    @media (max-width: 768px) {
-        .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-        .table th, .table td { padding: 10px 6px; font-size: 13px; }
-        .chart-wrap, .chart-wrap-wide { height: 220px; }
-    }
-
-    @media (max-width: 480px) {
-        .stats-grid { grid-template-columns: 1fr; }
-        .table th, .table td { padding: 8px 4px; font-size: 12.5px; }
-        h2 { font-size: 1.35rem; }
-    }
-</style>
-
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
 {{ revenue_trend_labels|json_script:"revenue-trend-labels" }}
 {{ revenue_trend_data|json_script:"revenue-trend-data" }}
-{{ company_sales_labels|json_script:"top-products-labels" }}
-{{ company_sales_data|json_script:"top-products-data" }}
+{{ company_sales_labels|json_script:"company-sales-labels" }}
+{{ company_sales_data|json_script:"company-sales-data" }}
 {{ area_names|json_script:"area-names" }}
 {{ area_pending_data|json_script:"area-pending-data" }}
 {{ area_delivered_data|json_script:"area-delivered-data" }}
@@ -412,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    // Revenue Trend
+    // 1. Revenue Trend Line Chart
     new Chart(document.getElementById('revenueTrendChart'), {
         type: 'line',
         data: {
@@ -420,16 +467,27 @@ document.addEventListener('DOMContentLoaded', function () {
             datasets: [{
                 label: 'Revenue (₹)',
                 data: JSON.parse(document.getElementById('revenue-trend-data').textContent),
-                borderColor: '#6f42c1',
-                backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                borderColor: '#7928ca',
+                backgroundColor: 'rgba(121, 40, 202, 0.05)',
                 fill: true,
-                tension: 0.35,
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 4,
+                pointBackgroundColor: '#7928ca'
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+                x: { grid: { display: false }, ticks: { color: '#64748b' } }
+            }
+        }
     });
 
-    // Order Status Doughnut
+    // 2. Order Status Doughnut Chart
     new Chart(document.getElementById('orderStatusChart'), {
         type: 'doughnut',
         data: {
@@ -440,43 +498,62 @@ document.addEventListener('DOMContentLoaded', function () {
                     {{ orders_by_status.Completed|default:0 }},
                     {{ orders_by_status.Cancelled|default:0 }}
                 ],
-                backgroundColor: ['#ffc107', '#28a745', '#dc3545']
+                backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: '#64748b' } } },
+            cutout: '65%'
+        }
     });
 
-    // Company Sales Bar
+    // 3. Company Revenue Share Bar Chart
     new Chart(document.getElementById('topProductsChart'), {
         type: 'bar',
         data: {
-            labels: JSON.parse(document.getElementById('top-products-labels').textContent),
+            labels: JSON.parse(document.getElementById('company-sales-labels').textContent),
             datasets: [{
-                label: 'Revenue (₹)',
-                data: JSON.parse(document.getElementById('top-products-data').textContent),
-                backgroundColor: '#6f42c1',
-                borderRadius: 6,
+                label: 'Revenue Share (₹)',
+                data: JSON.parse(document.getElementById('company-sales-data').textContent),
+                backgroundColor: '#0072ff',
+                borderRadius: 8,
+                maxBarThickness: 32
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+                x: { grid: { display: false }, ticks: { color: '#64748b' } }
+            }
+        }
     });
 
-    // Area Orders Stacked Bar
+    // 4. Area Order Status Stacked Bar Chart
     new Chart(document.getElementById('areaOrdersChart'), {
         type: 'bar',
         data: {
             labels: JSON.parse(document.getElementById('area-names').textContent),
             datasets: [
-                { label: 'Delivered', data: JSON.parse(document.getElementById('area-delivered-data').textContent), backgroundColor: '#28a745', stack: 'orders' },
-                { label: 'Pending', data: JSON.parse(document.getElementById('area-pending-data').textContent), backgroundColor: '#ffc107', stack: 'orders' },
-                { label: 'Cancelled', data: JSON.parse(document.getElementById('area-cancelled-data').textContent), backgroundColor: '#dc3545', stack: 'orders' },
+                { label: 'Delivered', data: JSON.parse(document.getElementById('area-delivered-data').textContent), backgroundColor: '#10b981', stack: 'orders', borderRadius: 4 },
+                { label: 'Pending', data: JSON.parse(document.getElementById('area-pending-data').textContent), backgroundColor: '#f59e0b', stack: 'orders', borderRadius: 4 },
+                { label: 'Cancelled', data: JSON.parse(document.getElementById('area-cancelled-data').textContent), backgroundColor: '#ef4444', stack: 'orders', borderRadius: 4 },
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: '#64748b' } } },
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { color: '#64748b' } },
+                y: { stacked: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' }, beginAtZero: true }
+            }
         }
     });
 });
