@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-+(n!vu0g76bg0d*7=v1c6!+an=^=_=9pf^(7j&g63p-70j8g94
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['easypharma-wholesale.vercel.app','127.0.0.1']
+ALLOWED_HOSTS = ['easypharma-wholesale.vercel.app','127.0.0.1','easypharma-wholesale-9c5okf1yj-easypharma-wholesale.vercel.app']
 
 
 # Application definition
